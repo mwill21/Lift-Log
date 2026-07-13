@@ -4,17 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Lift Log">
-<meta name="theme-color" content="#12161c">
+<meta name="theme-color" content="#ffffff">
 <title>Lift Log</title>
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' fill='%2312161c'/%3E%3Crect x='24' y='78' width='132' height='24' fill='%23e8eaed'/%3E%3Crect x='14' y='62' width='20' height='56' fill='%23f2792b'/%3E%3Crect x='146' y='62' width='20' height='56' fill='%23f2792b'/%3E%3C/svg%3E">
 
 <style>
   :root{
-    --bg:#12161c; --panel:#1a1f27; --panel-2:#222833; --line:#2c3441;
-    --ink:#e8eaed; --ink-dim:#8b95a3; --ink-faint:#5c6675;
-    --accent:#f2792b; --go:#3ecf8e; --hold:#5a6472; --ss:#5b8dd9;
+    --bg:#ffffff; --panel:#f7f8f9; --panel-2:#ffffff; --line:#dfe3e8;
+    --ink:#0d1117; --ink-dim:#4a5260; --ink-faint:#79828f;
+    --accent:#c2410c; --go:#0f7a4d; --hold:#6b7280; --ss:#1d4ed8;
     --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -29,13 +29,52 @@
 
   header{
     position:sticky;top:0;z-index:20;
-    background:rgba(18,22,28,.92);backdrop-filter:blur(12px);
+    background:rgba(255,255,255,.9);backdrop-filter:blur(12px);
     border-bottom:1px solid var(--line);
     padding:calc(env(safe-area-inset-top) + 14px) 16px 0;
   }
-  .brand{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:12px}
   .brand h1{margin:0;font-size:18px;font-weight:700;letter-spacing:-.02em}
-  .brand .wk{font-family:var(--mono);font-size:11px;color:var(--ink-faint);letter-spacing:.08em;text-transform:uppercase}
+
+  /* week stepper */
+  .wkbox{
+    display:flex;align-items:stretch;
+    border:1px solid var(--line);border-radius:8px;
+    overflow:hidden;background:var(--panel);
+  }
+  .wkbox button{
+    background:none;border:none;cursor:pointer;
+    color:var(--ink-dim);
+    font-family:var(--mono);font-size:15px;font-weight:700;line-height:1;
+    padding:0 11px;min-width:34px;min-height:34px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .wkbox button:active{background:var(--panel-2);color:var(--ink)}
+  .wkbox button:disabled{color:#ccd2da;cursor:default;background:none}
+  .wkbox .wk{
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:11px;font-weight:700;
+    color:var(--ink);letter-spacing:.08em;text-transform:uppercase;
+    padding:0 10px;min-width:74px;
+    border-left:1px solid var(--line);border-right:1px solid var(--line);
+    white-space:nowrap;
+  }
+  .wkbox.deload .wk{color:var(--accent)}
+  .wkbox.deload{border-color:rgba(194,65,12,.55)}
+
+  .deloadbar{
+    display:flex;align-items:center;gap:8px;
+    background:rgba(194,65,12,.07);
+    border:1px solid rgba(194,65,12,.3);
+    border-radius:10px;padding:11px 13px;margin-bottom:14px;
+  }
+  .deloadbar .tag{
+    font-family:var(--mono);font-size:10px;font-weight:700;
+    letter-spacing:.08em;text-transform:uppercase;color:var(--accent);
+    white-space:nowrap;
+  }
+  .deloadbar .txt{font-size:12px;color:var(--ink-dim);line-height:1.4}
+  .deloadbar .txt b{color:var(--ink);font-weight:650}
   nav{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
   nav::-webkit-scrollbar{display:none}
   nav button{
@@ -55,13 +94,13 @@
   .daytitle .dur{color:var(--ink-faint);font-size:11px;white-space:nowrap}
 
   .block{
-    border:1px solid var(--ss);border-radius:14px;margin-bottom:12px;
-    overflow:hidden;background:rgba(91,141,217,.04);
+    border:1px solid rgba(29,78,216,.28);border-radius:14px;margin-bottom:12px;
+    overflow:hidden;background:rgba(29,78,216,.035);
   }
   .block-head{
     display:flex;align-items:center;gap:8px;padding:9px 13px;
-    background:rgba(91,141,217,.1);
-    border-bottom:1px solid rgba(91,141,217,.25);
+    background:rgba(29,78,216,.07);
+    border-bottom:1px solid rgba(29,78,216,.2);
   }
   .block-tag{
     font-family:var(--mono);font-size:10px;font-weight:700;
@@ -72,11 +111,12 @@
     letter-spacing:.03em;flex:1;text-align:right;
   }
   .block .ex{border:none;border-radius:0;margin:0;background:transparent}
-  .block .ex + .ex{border-top:1px solid rgba(91,141,217,.18)}
+  .block .ex + .ex{border-top:1px solid rgba(29,78,216,.15)}
 
   .ex{
     background:var(--panel);border:1px solid var(--line);
     border-radius:12px;margin-bottom:12px;overflow:hidden;
+    box-shadow:0 1px 2px rgba(13,17,23,.04);
   }
   .ex-head{display:flex;align-items:center;gap:10px;padding:13px 14px;cursor:pointer}
   .slot{
@@ -90,13 +130,13 @@
     flex:0 0 auto;font-family:var(--mono);font-size:10px;font-weight:700;
     letter-spacing:.06em;padding:4px 7px;border-radius:5px;white-space:nowrap;
   }
-  .flag.up{background:rgba(62,207,142,.15);color:var(--go);border:1px solid rgba(62,207,142,.3)}
-  .flag.hold{background:rgba(90,100,114,.15);color:var(--hold);border:1px solid rgba(90,100,114,.3)}
+  .flag.up{background:rgba(15,122,77,.09);color:var(--go);border:1px solid rgba(15,122,77,.28)}
+  .flag.hold{background:rgba(107,114,128,.08);color:var(--hold);border:1px solid rgba(107,114,128,.25)}
   .flag.none{background:transparent;color:var(--ink-faint);border:1px solid var(--line)}
   .chev{flex:0 0 auto;color:var(--ink-faint);font-size:12px;transition:transform .18s ease}
   .ex.open .chev{transform:rotate(90deg)}
   .ex-body{display:none;border-top:1px solid var(--line);padding:12px 14px 14px}
-  .block .ex-body{border-top:1px solid rgba(91,141,217,.18)}
+  .block .ex-body{border-top:1px solid rgba(29,78,216,.15)}
   .ex.open .ex-body{display:block}
 
   .colhead{
@@ -113,14 +153,14 @@
   }
   input[type=number]::-webkit-outer-spin-button,
   input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-  input[type=number]:focus{outline:none;border-color:var(--accent);background:#262d38}
+  input[type=number]:focus{outline:none;border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px rgba(194,65,12,.12)}
   input[type=number]::placeholder{color:var(--ink-faint);font-weight:400}
   .prev{font-family:var(--mono);font-size:11px;color:var(--ink-faint);text-align:right;line-height:1.2}
   .prev b{color:var(--ink-dim);font-weight:600}
 
   .alt{
     margin-top:10px;padding:8px 10px;
-    background:rgba(91,141,217,.08);
+    background:rgba(29,78,216,.06);
     border-left:2px solid var(--ss);
     border-radius:0 6px 6px 0;
     font-family:var(--mono);font-size:11px;color:var(--ink-dim);line-height:1.55;
@@ -137,14 +177,14 @@
 
   .savebar{
     position:fixed;left:0;right:0;bottom:0;z-index:30;
-    background:rgba(18,22,28,.94);backdrop-filter:blur(12px);
+    background:rgba(255,255,255,.94);backdrop-filter:blur(12px);
     border-top:1px solid var(--line);
     padding:10px 12px calc(env(safe-area-inset-bottom) + 10px);
     display:flex;gap:8px;justify-content:center;max-width:640px;margin:0 auto;
   }
   .savebar button{
     flex:1;max-width:300px;background:var(--accent);border:none;border-radius:10px;
-    color:#12161c;font-family:var(--mono);font-size:13px;font-weight:700;
+    color:#fff;font-family:var(--mono);font-size:13px;font-weight:700;
     letter-spacing:.06em;text-transform:uppercase;padding:14px;cursor:pointer;
   }
   .savebar button:active{opacity:.8}
@@ -155,7 +195,7 @@
 
   .toast{
     position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);
-    background:var(--go);color:#0d1117;
+    background:var(--go);color:#fff;
     font-family:var(--mono);font-size:12px;font-weight:700;
     letter-spacing:.05em;text-transform:uppercase;
     padding:11px 18px;border-radius:8px;opacity:0;pointer-events:none;
@@ -170,7 +210,7 @@
   .note b{color:var(--ink);font-weight:650}
   .note ul{margin:0;padding-left:18px;color:var(--ink-dim);font-size:14px;line-height:1.6}
   .danger{
-    width:100%;background:transparent;border:1px solid #5c3030;color:#c96a6a;
+    width:100%;background:transparent;border:1px solid #e5b4b4;color:#b3261e;
     border-radius:10px;padding:13px;font-family:var(--mono);font-size:12px;
     font-weight:600;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;
   }
@@ -182,7 +222,11 @@
 <header>
   <div class="brand">
     <h1>Lift Log</h1>
-    <span class="wk" id="weekLabel">Week 1</span>
+    <div class="wkbox" id="wkbox">
+      <button id="wkPrev" aria-label="Previous week">−</button>
+      <span class="wk" id="weekLabel">Week 1</span>
+      <button id="wkNext" aria-label="Next week">+</button>
+    </div>
   </div>
   <nav id="nav"></nav>
 </header>
@@ -275,9 +319,16 @@ let DB = load();
 let currentDay = DAY_ORDER[0];
 let draft = {};
 
+// Most recent *non-deload* session. Deload weeks are logged but never
+// drive the progression call — otherwise week 8 would tell you to
+// deload again off the back of week 7's reduced load.
 function lastEntry(id){
   const a = DB.log[id];
-  return (a && a.length) ? a[a.length-1] : null;
+  if(!a || !a.length) return null;
+  for(let i = a.length - 1; i >= 0; i--){
+    if(a[i].week !== DELOAD_WEEK) return a[i];
+  }
+  return null;
 }
 
 function verdict(lift){
@@ -318,8 +369,29 @@ function renderNav(){
   if(currentDay === "notes") b.className = "on";
   b.onclick = function(){ currentDay="notes"; renderNav(); renderMain(); window.scrollTo(0,0); };
   nav.appendChild(b);
-  document.getElementById("weekLabel").textContent = "Week " + DB.week;
+  renderWeek();
 }
+
+const DELOAD_WEEK = 7;
+const LAST_WEEK   = 12;
+
+function setWeek(w){
+  DB.week = Math.min(LAST_WEEK, Math.max(1, w));
+  save(DB);
+  renderWeek();
+  renderMain();
+}
+
+function renderWeek(){
+  const box = document.getElementById("wkbox");
+  document.getElementById("weekLabel").textContent = "Week " + DB.week;
+  box.classList.toggle("deload", DB.week === DELOAD_WEEK);
+  document.getElementById("wkPrev").disabled = (DB.week <= 1);
+  document.getElementById("wkNext").disabled = (DB.week >= LAST_WEEK);
+}
+
+document.getElementById("wkPrev").onclick = function(){ setWeek(DB.week - 1); };
+document.getElementById("wkNext").onclick = function(){ setWeek(DB.week + 1); };
 
 function buildCard(lift, day){
   const v = verdict(lift);
@@ -418,6 +490,16 @@ function renderMain(){
   t.innerHTML = '<span>' + day.title + '</span><span class="dur">' + day.dur + '</span>';
   main.appendChild(t);
 
+  if(DB.week === DELOAD_WEEK){
+    const d = document.createElement("div");
+    d.className = "deloadbar";
+    d.innerHTML =
+      '<span class="tag">Deload</span>' +
+      '<span class="txt">Run <b>half the sets</b> at <b>60% of last week\'s load</b>. ' +
+      'Log it as normal — the progression call ignores deload weeks.</span>';
+    main.appendChild(d);
+  }
+
   let i = 0;
   while(i < day.lifts.length){
     const lift = day.lifts[i];
@@ -467,6 +549,7 @@ function renderNotes(main){
     '<div class="note">' +
       '<h3>Week 7 deload — mandatory</h3>' +
       '<p>Same exercises, <b>50% of the sets, 60% of the load</b>. Skipping this at 42 is how a cycle ends in a tweaked shoulder instead of new muscle.</p>' +
+      '<p>Set the counter to week 7 and the app flags it on every day. Deload sessions are logged but <b>excluded from the progression call</b> — week 8 compares against week 6, not against the light week.</p>' +
     '</div>' +
 
     '<div class="note">' +
@@ -486,26 +569,11 @@ function renderNotes(main){
     '</div>' +
 
     '<div class="note">' +
-      '<h3>Week counter</h3>' +
-      '<p style="margin-bottom:12px">Currently on <b>week ' + DB.week + '</b> of 12.</p>' +
-      '<div style="display:flex;gap:8px">' +
-        '<button class="danger" style="border-color:var(--line);color:var(--ink-dim)" id="weekDown">− Week</button>' +
-        '<button class="danger" style="border-color:var(--line);color:var(--ink-dim)" id="weekUp">+ Week</button>' +
-      '</div>' +
-    '</div>' +
-
-    '<div class="note">' +
       '<h3>Reset</h3>' +
       '<p style="margin-bottom:12px">Wipes every logged session on this device. No undo.</p>' +
       '<button class="danger" id="wipe">Erase all data</button>' +
     '</div>';
 
-  document.getElementById("weekUp").onclick = function(){
-    DB.week = Math.min(12, DB.week+1); save(DB); renderNav(); renderMain();
-  };
-  document.getElementById("weekDown").onclick = function(){
-    DB.week = Math.max(1, DB.week-1); save(DB); renderNav(); renderMain();
-  };
   document.getElementById("wipe").onclick = function(){
     if(confirm("Erase all logged sessions? This cannot be undone.")){
       DB = {week:1, log:{}};

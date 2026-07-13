@@ -203,6 +203,44 @@
   }
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
+  /* ---------- fuel tab ---------- */
+  .tot{
+    display:grid;grid-template-columns:repeat(4,1fr);
+    gap:1px;background:var(--line);
+    border:1px solid var(--line);border-radius:12px;
+    overflow:hidden;margin-bottom:12px;
+  }
+  .totrow{
+    background:var(--panel);padding:11px 8px;
+    display:flex;flex-direction:column;align-items:center;gap:2px;
+  }
+  .totrow span:first-child{
+    font-family:var(--mono);font-size:9px;color:var(--ink-faint);
+    letter-spacing:.08em;text-transform:uppercase;
+  }
+  .totrow b{
+    font-family:var(--mono);font-size:16px;font-weight:700;color:var(--ink);
+    letter-spacing:-.02em;
+  }
+  .totrow .tgt{font-family:var(--mono);font-size:10px;color:var(--ink-faint)}
+
+  .fhead,.frow{
+    display:grid;grid-template-columns:1fr 38px 30px 30px 28px;
+    gap:6px;align-items:center;
+  }
+  .fhead{
+    font-family:var(--mono);font-size:9px;color:var(--ink-faint);
+    letter-spacing:.08em;text-transform:uppercase;
+    padding:0 2px 7px;border-bottom:1px solid var(--line);margin-bottom:7px;
+  }
+  .fhead span:not(:first-child),.frow span:not(:first-child){text-align:right}
+  .frow{
+    font-size:13px;color:var(--ink-dim);padding:5px 2px;line-height:1.35;
+  }
+  .frow span:first-child{color:var(--ink)}
+  .frow span:not(:first-child){font-family:var(--mono);font-size:12px}
+  .frow .pp{color:var(--go);font-weight:700}
+
   .note{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:12px}
   .note h3{margin:0 0 10px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
   .note p{margin:0 0 8px;font-size:14px;color:var(--ink-dim);line-height:1.55}
@@ -364,11 +402,13 @@ function renderNav(){
     b.onclick = function(){ currentDay=d; draft={}; renderNav(); renderMain(); window.scrollTo(0,0); };
     nav.appendChild(b);
   });
-  const b = document.createElement("button");
-  b.textContent = "Plan";
-  if(currentDay === "notes") b.className = "on";
-  b.onclick = function(){ currentDay="notes"; renderNav(); renderMain(); window.scrollTo(0,0); };
-  nav.appendChild(b);
+  [["fuel","Fuel"],["notes","Plan"]].forEach(function(pair){
+    const b = document.createElement("button");
+    b.textContent = pair[1];
+    if(currentDay === pair[0]) b.className = "on";
+    b.onclick = function(){ currentDay = pair[0]; renderNav(); renderMain(); window.scrollTo(0,0); };
+    nav.appendChild(b);
+  });
   renderWeek();
 }
 
@@ -481,6 +521,7 @@ function renderMain(){
   main.innerHTML = "";
 
   if(currentDay === "notes"){ bar.style.display="none"; renderNotes(main); return; }
+  if(currentDay === "fuel"){  bar.style.display="none"; renderFuel(main);  return; }
   bar.style.display = "flex";
 
   const day = PROGRAM[currentDay];
@@ -527,6 +568,122 @@ function renderMain(){
     }
     main.appendChild(wrap);
   }
+}
+
+/* =========================================================
+   FUEL — sample day, ~2,350 cal / 185 g protein
+   Totals are computed from the rows, never hardcoded.
+   ========================================================= */
+const TARGET = {cal:2350, p:185, c:210, f:65};
+
+const MEALS = [
+  {name:"Breakfast", time:"~7:00", items:[
+    {f:"3 whole eggs",                  cal:210, p:18, c:2,  ft:15},
+    {f:"3 egg whites",                  cal:50,  p:11, c:1,  ft:0},
+    {f:"1 cup oats (dry, 80 g)",        cal:300, p:10, c:54, ft:5},
+    {f:"1 cup blueberries",             cal:85,  p:1,  c:21, ft:0},
+    {f:"Black coffee",                  cal:5,   p:0,  c:0,  ft:0}
+  ]},
+  {name:"Lunch", time:"~12:30", items:[
+    {f:"6 oz chicken breast, grilled",  cal:280, p:53, c:0,  ft:6},
+    {f:"1 cup jasmine rice, cooked",    cal:205, p:4,  c:45, ft:0},
+    {f:"Mixed salad + 1 tbsp olive oil",cal:145, p:2,  c:8,  ft:14}
+  ]},
+  {name:"Pre-gym", time:"~4:30", items:[
+    {f:"1 cup nonfat Greek yogurt",     cal:130, p:23, c:9,  ft:0},
+    {f:"1 medium banana",               cal:105, p:1,  c:27, ft:0}
+  ]},
+  {name:"Dinner", time:"~7:30", items:[
+    {f:"6 oz 93/7 ground beef",         cal:265, p:46, c:0,  ft:9},
+    {f:"1 medium sweet potato",         cal:105, p:2,  c:24, ft:0},
+    {f:"2 cups roasted broccoli",       cal:90,  p:6,  c:14, ft:1},
+    {f:"1 tbsp olive oil (cooking)",    cal:120, p:0,  c:0,  ft:14}
+  ]},
+  {name:"Pre-sleep", time:"~10:30", items:[
+    {f:"40 g micellar casein, in water",cal:160, p:36, c:4,  ft:1}
+  ]}
+];
+
+const SWAPS = [
+  ["Chicken breast",  "6 oz cod — 190 cal, 40 g P"],
+  ["Ground beef",     "6 oz sirloin, or 8 oz 99% turkey"],
+  ["Rice",            "Quinoa, potatoes, whole-grain wrap"],
+  ["Casein",          "1 cup cottage cheese — ~28 g P, ~80% casein"],
+  ["Greek yogurt",    "Skyr, or 1 scoop Orgain in water"]
+];
+
+function sumItems(items){
+  return items.reduce(function(a,i){
+    return {cal:a.cal+i.cal, p:a.p+i.p, c:a.c+i.c, ft:a.ft+i.ft};
+  }, {cal:0,p:0,c:0,ft:0});
+}
+
+function renderFuel(main){
+  const day = sumItems(MEALS.reduce(function(a,m){ return a.concat(m.items); }, []));
+
+  let h = '<div class="daytitle"><span>Fuel — Sample Day</span>' +
+          '<span class="dur">2,350 cal · 185 g P</span></div>';
+
+  // running totals vs target
+  h += '<div class="tot">' +
+         '<div class="totrow"><span>Calories</span><b>' + day.cal + '</b>' +
+           '<span class="tgt">/ ' + TARGET.cal + '</span></div>' +
+         '<div class="totrow"><span>Protein</span><b>' + day.p + ' g</b>' +
+           '<span class="tgt">/ ' + TARGET.p + ' g</span></div>' +
+         '<div class="totrow"><span>Carbs</span><b>' + day.c + ' g</b>' +
+           '<span class="tgt">/ ' + TARGET.c + ' g</span></div>' +
+         '<div class="totrow"><span>Fat</span><b>' + day.ft + ' g</b>' +
+           '<span class="tgt">/ ' + TARGET.f + ' g</span></div>' +
+       '</div>';
+
+  h += '<div class="deloadbar" style="align-items:flex-start">' +
+         '<span class="tag">Buffer</span>' +
+         '<span class="txt">This day lands <b>~' + (TARGET.cal - day.cal) + ' cal under</b> target. ' +
+         '<b>Spend it — do not bank it.</b> Extra oil, a slice of bread, another banana. ' +
+         'Chronically undereating on a cut costs you muscle, not fat.</span>' +
+       '</div>';
+
+  // meals
+  MEALS.forEach(function(m){
+    const s = sumItems(m.items);
+    h += '<div class="ex" style="margin-bottom:12px">' +
+           '<div class="ex-head" style="cursor:default">' +
+             '<div class="ex-name">' +
+               '<div class="n">' + m.name + '</div>' +
+               '<div class="m">' + m.time + '</div>' +
+             '</div>' +
+             '<div class="flag none">' + s.cal + ' cal · ' + s.p + ' g P</div>' +
+           '</div>' +
+           '<div class="ex-body" style="display:block">' +
+             '<div class="fhead"><span>Food</span><span>Cal</span><span>P</span><span>C</span><span>F</span></div>';
+    m.items.forEach(function(i){
+      h += '<div class="frow"><span>' + i.f + '</span><span>' + i.cal + '</span>' +
+           '<span class="pp">' + i.p + '</span><span>' + i.c + '</span><span>' + i.ft + '</span></div>';
+    });
+    h += '</div></div>';
+  });
+
+  // swaps
+  h += '<div class="note"><h3>Swaps</h3>';
+  SWAPS.forEach(function(s){
+    h += '<p style="margin-bottom:6px"><b>' + s[0] + '</b> → ' + s[1] + '</p>';
+  });
+  h += '</div>';
+
+  h += '<div class="note">' +
+         '<h3>The rules that matter more than this table</h3>' +
+         '<p><b>Anchor every meal on a protein source</b>, then fill in around it. Build around the carb and you will miss.</p>' +
+         '<p><b>One shake a day, and it is the bedtime one.</b> This day gets ~177 g from real food. Powder fills gaps; it does not carry the load.</p>' +
+         '<p><b>Measure the oil. Eyeball the broccoli.</b> Two tbsp of olive oil is 240 cal — 10% of your day in something you would barely notice pouring. Vegetables are effectively free.</p>' +
+       '</div>';
+
+  h += '<div class="note">' +
+         '<h3>What actually decides this</h3>' +
+         '<p><b>Track for two weeks, then stop.</b> Food scale, MyFitnessPal or Cronometer. Long enough to learn what 6 oz of chicken and 1 tbsp of oil really look like — then you can eyeball it. Most failed cuts are a measurement problem, not a willpower problem.</p>' +
+         '<p><b>Weigh daily, same time, average the week.</b> Daily weight is mostly water and it will lie to you. If the weekly average is not dropping ~1 lb after two weeks, <b>cut 200 cal — do not add cardio first.</b></p>' +
+       '</div>';
+
+  main.innerHTML = h;
 }
 
 function renderNotes(main){

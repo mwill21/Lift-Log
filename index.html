@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Lift Log">
 <meta name="theme-color" content="#ffffff">
 <title>Lift Log</title>
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' fill='%2312161c'/%3E%3Crect x='24' y='78' width='132' height='24' fill='%23e8eaed'/%3E%3Crect x='14' y='62' width='20' height='56' fill='%23f2792b'/%3E%3Crect x='146' y='62' width='20' height='56' fill='%23f2792b'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20180%20180%22%3E%20%3Crect%20width%3D%22180%22%20height%3D%22180%22%20fill%3D%22%23000000%22%2F%3E%20%3Ctext%20x%3D%2290%22%20y%3D%2256%22%20text-anchor%3D%22middle%22%20font-family%3D%22Helvetica%2CArial%2Csans-serif%22%20font-weight%3D%22900%22%20font-size%3D%2250%22%20letter-spacing%3D%221%22%20fill%3D%22%23ffffff%22%3ELIFT%3C%2Ftext%3E%20%3C%21--%20sleeve%3A%20runs%20the%20full%20width%2C%20poking%20out%20past%20both%20plates%20--%3E%20%3Crect%20x%3D%226%22%20y%3D%2284%22%20width%3D%22168%22%20height%3D%2212%22%20rx%3D%224%22%20fill%3D%22%23ffffff%22%2F%3E%20%3C%21--%20knurled%20center%20shaft%2C%20slightly%20thicker%20than%20the%20sleeve%20ends%20--%3E%20%3Crect%20x%3D%2240%22%20y%3D%2282%22%20width%3D%22100%22%20height%3D%2216%22%20rx%3D%225%22%20fill%3D%22%23ffffff%22%2F%3E%20%3C%21--%20plates%20--%3E%20%3Crect%20x%3D%2216%22%20y%3D%2258%22%20width%3D%2226%22%20height%3D%2264%22%20rx%3D%226%22%20fill%3D%22%23ffffff%22%2F%3E%20%3Crect%20x%3D%22138%22%20y%3D%2258%22%20width%3D%2226%22%20height%3D%2264%22%20rx%3D%226%22%20fill%3D%22%23ffffff%22%2F%3E%20%3Ctext%20x%3D%2290%22%20y%3D%22162%22%20text-anchor%3D%22middle%22%20font-family%3D%22Helvetica%2CArial%2Csans-serif%22%20font-weight%3D%22900%22%20font-size%3D%2250%22%20letter-spacing%3D%221%22%20fill%3D%22%23ffffff%22%3ELOG%3C%2Ftext%3E%20%3C%2Fsvg%3E">
 
 <style>
   :root{
@@ -204,6 +204,21 @@
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
   /* ---------- fuel tab ---------- */
+  .seg{
+    display:flex;gap:0;margin-bottom:12px;
+    border:1px solid var(--line);border-radius:10px;
+    overflow:hidden;background:var(--panel);
+  }
+  .segb{
+    flex:1;background:none;border:none;cursor:pointer;
+    color:var(--ink-faint);
+    font-family:var(--mono);font-size:11px;font-weight:700;
+    letter-spacing:.07em;text-transform:uppercase;
+    padding:12px 8px;
+  }
+  .segb + .segb{border-left:1px solid var(--line)}
+  .segb.on{background:var(--ink);color:#fff}
+
   .tot{
     display:grid;grid-template-columns:repeat(4,1fr);
     gap:1px;background:var(--line);
@@ -576,41 +591,93 @@ function renderMain(){
    ========================================================= */
 const TARGET = {cal:2350, p:185, c:210, f:65};
 
-const MEALS = [
-  {name:"Breakfast", time:"~7:00", items:[
-    {f:"3 whole eggs",                  cal:210, p:18, c:2,  ft:15},
-    {f:"3 egg whites",                  cal:50,  p:11, c:1,  ft:0},
-    {f:"1 cup oats (dry, 80 g)",        cal:300, p:10, c:54, ft:5},
-    {f:"1 cup blueberries",             cal:85,  p:1,  c:21, ft:0},
-    {f:"Black coffee",                  cal:5,   p:0,  c:0,  ft:0}
-  ]},
-  {name:"Lunch", time:"~12:30", items:[
-    {f:"6 oz chicken breast, grilled",  cal:280, p:53, c:0,  ft:6},
-    {f:"1 cup jasmine rice, cooked",    cal:205, p:4,  c:45, ft:0},
-    {f:"Mixed salad + 1 tbsp olive oil",cal:145, p:2,  c:8,  ft:14}
-  ]},
-  {name:"Pre-gym", time:"~4:30", items:[
-    {f:"1 cup nonfat Greek yogurt",     cal:130, p:23, c:9,  ft:0},
-    {f:"1 medium banana",               cal:105, p:1,  c:27, ft:0}
-  ]},
-  {name:"Dinner", time:"~7:30", items:[
-    {f:"6 oz 93/7 ground beef",         cal:265, p:46, c:0,  ft:9},
-    {f:"1 medium sweet potato",         cal:105, p:2,  c:24, ft:0},
-    {f:"2 cups roasted broccoli",       cal:90,  p:6,  c:14, ft:1},
-    {f:"1 tbsp olive oil (cooking)",    cal:120, p:0,  c:0,  ft:14}
-  ]},
-  {name:"Pre-sleep", time:"~10:30", items:[
-    {f:"40 g micellar casein, in water",cal:160, p:36, c:4,  ft:1}
-  ]}
-];
+const PLANS = {
+  omni: {
+    label:"Omnivore",
+    meals:[
+      {name:"Breakfast", time:"~7:00", items:[
+        {f:"3 whole eggs",                   cal:210, p:18, c:2,  ft:15},
+        {f:"3 egg whites",                   cal:50,  p:11, c:1,  ft:0},
+        {f:"1 cup oats (dry, 80 g)",         cal:300, p:10, c:54, ft:5},
+        {f:"1 cup blueberries",              cal:85,  p:1,  c:21, ft:0},
+        {f:"Black coffee",                   cal:5,   p:0,  c:0,  ft:0}
+      ]},
+      {name:"Lunch", time:"~12:30", items:[
+        {f:"6 oz chicken breast, grilled",   cal:280, p:53, c:0,  ft:6},
+        {f:"1 cup jasmine rice, cooked",     cal:205, p:4,  c:45, ft:0},
+        {f:"Mixed salad + 1 tbsp olive oil", cal:145, p:2,  c:8,  ft:14}
+      ]},
+      {name:"Pre-gym", time:"~4:30", items:[
+        {f:"1 cup nonfat Greek yogurt",      cal:130, p:23, c:9,  ft:0},
+        {f:"1 medium banana",                cal:105, p:1,  c:27, ft:0}
+      ]},
+      {name:"Dinner", time:"~7:30", items:[
+        {f:"6 oz 93/7 ground beef",          cal:265, p:46, c:0,  ft:9},
+        {f:"1 medium sweet potato",          cal:105, p:2,  c:24, ft:0},
+        {f:"2 cups roasted broccoli",        cal:90,  p:6,  c:14, ft:1},
+        {f:"1 tbsp olive oil (cooking)",     cal:120, p:0,  c:0,  ft:14}
+      ]},
+      {name:"Pre-sleep", time:"~10:30", items:[
+        {f:"40 g micellar casein, in water", cal:160, p:36, c:4,  ft:1}
+      ]}
+    ]
+  },
 
-const SWAPS = [
-  ["Chicken breast",  "6 oz cod — 190 cal, 40 g P"],
-  ["Ground beef",     "6 oz sirloin, or 8 oz 99% turkey"],
-  ["Rice",            "Quinoa, potatoes, whole-grain wrap"],
-  ["Casein",          "1 cup cottage cheese — ~28 g P, ~80% casein"],
-  ["Greek yogurt",    "Skyr, or 1 scoop Orgain in water"]
-];
+  veg: {
+    label:"Vegetarian",
+    meals:[
+      {name:"Breakfast", time:"~7:00", items:[
+        {f:"3 whole eggs",                   cal:210, p:18, c:2,  ft:15},
+        {f:"3 egg whites",                   cal:50,  p:11, c:1,  ft:0},
+        {f:"1 cup oats (dry, 80 g)",         cal:300, p:10, c:54, ft:5},
+        {f:"1 cup blueberries",              cal:85,  p:1,  c:21, ft:0}
+      ]},
+      {name:"Lunch", time:"~12:30", items:[
+        {f:"1 cup cottage cheese (low-fat)", cal:165, p:28, c:6,  ft:2},
+        {f:"1 cup lentils, cooked",          cal:230, p:18, c:40, ft:1},
+        {f:"Mixed salad + 1 tbsp olive oil", cal:145, p:2,  c:8,  ft:14}
+      ]},
+      {name:"Pre-gym", time:"~4:30", items:[
+        {f:"1 cup nonfat Greek yogurt",      cal:130, p:23, c:9,  ft:0},
+        {f:"1 medium banana",                cal:105, p:1,  c:27, ft:0}
+      ]},
+      {name:"Dinner", time:"~7:30", items:[
+        {f:"8 oz extra-firm tofu, seared",   cal:260, p:28, c:8,  ft:14},
+        {f:"1 cup edamame, shelled",         cal:190, p:18, c:14, ft:8},
+        {f:"1 cup jasmine rice, cooked",     cal:205, p:4,  c:45, ft:0},
+        {f:"2 cups roasted broccoli",        cal:90,  p:6,  c:14, ft:1}
+      ]},
+      {name:"Pre-sleep", time:"~10:30", items:[
+        {f:"40 g micellar casein, in water", cal:160, p:36, c:4,  ft:1}
+      ]}
+    ]
+  }
+};
+
+const SWAPS = {
+  omni:[
+    ["Chicken breast", "6 oz cod — 190 cal, 40 g P"],
+    ["Ground beef",    "6 oz sirloin, or 8 oz 99% turkey"],
+    ["Rice",           "Quinoa, potatoes, whole-grain wrap"],
+    ["Casein",         "1 cup cottage cheese — ~28 g P, ~80% casein"],
+    ["Greek yogurt",   "Skyr, or 1 scoop Orgain in water"]
+  ],
+  veg:[
+    ["Tofu",           "Tempeh (~31 g P / 8 oz) or seitan (~42 g P / 4 oz)"],
+    ["Lentils",        "Black beans, chickpeas, or 1 cup Greek yogurt"],
+    ["Cottage cheese", "Skyr, ricotta, or 2 scoops whey"],
+    ["Edamame",        "Extra tofu, or 1 oz nuts + more beans"],
+    ["Casein",         "1 cup cottage cheese — the whole-food version"]
+  ]
+};
+
+const PLAN_NOTES = {
+  omni:[],
+  veg:[
+    ["Why this works", "<b>Eggs and dairy do the heavy lifting</b> — cottage cheese, Greek yogurt, eggs, and casein supply <b>116 of the 204 g</b>. Complete proteins with real leucine. Strip them out and this plan collapses.<br><br><b>Soy is the one plant protein that is actually good.</b> Tofu and edamame are complete and reasonably leucine-rich — soy is the exception among plants, not the rule. Beans and rice alone would need far more food volume for the same effect."],
+    ["Two things to watch", "<b>Fiber is high</b> — likely north of 50 g/day between lentils, edamame, broccoli, and oats. Healthy, but it is a lot of volume. Ramp up over a week rather than switching cold.<br><br><b>Creatine matters more now.</b> Creatine comes almost entirely from meat, so vegetarians carry lower muscle stores — and tend to see <b>larger</b> gains from supplementing. The 5 g/day was already in the plan; it is doing more work than before."]
+  ]
+};
 
 function sumItems(items){
   return items.reduce(function(a,i){
@@ -619,32 +686,40 @@ function sumItems(items){
 }
 
 function renderFuel(main){
-  const day = sumItems(MEALS.reduce(function(a,m){ return a.concat(m.items); }, []));
+  const key   = DB.plan || "omni";
+  const plan  = PLANS[key];
+  const meals = plan.meals;
+  const day   = sumItems(meals.reduce(function(a,m){ return a.concat(m.items); }, []));
 
   let h = '<div class="daytitle"><span>Fuel — Sample Day</span>' +
           '<span class="dur">2,350 cal · 185 g P</span></div>';
 
-  // running totals vs target
+  // plan toggle
+  h += '<div class="seg">';
+  Object.keys(PLANS).forEach(function(k){
+    h += '<button class="segb' + (k === key ? ' on' : '') + '" data-plan="' + k + '">' +
+         PLANS[k].label + '</button>';
+  });
+  h += '</div>';
+
   h += '<div class="tot">' +
-         '<div class="totrow"><span>Calories</span><b>' + day.cal + '</b>' +
-           '<span class="tgt">/ ' + TARGET.cal + '</span></div>' +
-         '<div class="totrow"><span>Protein</span><b>' + day.p + ' g</b>' +
-           '<span class="tgt">/ ' + TARGET.p + ' g</span></div>' +
-         '<div class="totrow"><span>Carbs</span><b>' + day.c + ' g</b>' +
-           '<span class="tgt">/ ' + TARGET.c + ' g</span></div>' +
-         '<div class="totrow"><span>Fat</span><b>' + day.ft + ' g</b>' +
-           '<span class="tgt">/ ' + TARGET.f + ' g</span></div>' +
+         '<div class="totrow"><span>Calories</span><b>' + day.cal + '</b><span class="tgt">/ ' + TARGET.cal + '</span></div>' +
+         '<div class="totrow"><span>Protein</span><b>' + day.p + ' g</b><span class="tgt">/ ' + TARGET.p + ' g</span></div>' +
+         '<div class="totrow"><span>Carbs</span><b>' + day.c + ' g</b><span class="tgt">/ ' + TARGET.c + ' g</span></div>' +
+         '<div class="totrow"><span>Fat</span><b>' + day.ft + ' g</b><span class="tgt">/ ' + TARGET.f + ' g</span></div>' +
        '</div>';
 
-  h += '<div class="deloadbar" style="align-items:flex-start">' +
-         '<span class="tag">Buffer</span>' +
-         '<span class="txt">This day lands <b>~' + (TARGET.cal - day.cal) + ' cal under</b> target. ' +
-         '<b>Spend it — do not bank it.</b> Extra oil, a slice of bread, another banana. ' +
-         'Chronically undereating on a cut costs you muscle, not fat.</span>' +
-       '</div>';
+  const gap = TARGET.cal - day.cal;
+  if(gap > 40){
+    h += '<div class="deloadbar" style="align-items:flex-start">' +
+           '<span class="tag">Buffer</span>' +
+           '<span class="txt">This day lands <b>~' + gap + ' cal under</b> target. ' +
+           '<b>Spend it — do not bank it.</b> Extra oil, a slice of bread, another banana. ' +
+           'Chronically undereating on a cut costs you muscle, not fat.</span>' +
+         '</div>';
+  }
 
-  // meals
-  MEALS.forEach(function(m){
+  meals.forEach(function(m){
     const s = sumItems(m.items);
     h += '<div class="ex" style="margin-bottom:12px">' +
            '<div class="ex-head" style="cursor:default">' +
@@ -663,9 +738,13 @@ function renderFuel(main){
     h += '</div></div>';
   });
 
-  // swaps
+  // plan-specific notes
+  PLAN_NOTES[key].forEach(function(n){
+    h += '<div class="note"><h3>' + n[0] + '</h3><p>' + n[1] + '</p></div>';
+  });
+
   h += '<div class="note"><h3>Swaps</h3>';
-  SWAPS.forEach(function(s){
+  SWAPS[key].forEach(function(s){
     h += '<p style="margin-bottom:6px"><b>' + s[0] + '</b> → ' + s[1] + '</p>';
   });
   h += '</div>';
@@ -673,17 +752,26 @@ function renderFuel(main){
   h += '<div class="note">' +
          '<h3>The rules that matter more than this table</h3>' +
          '<p><b>Anchor every meal on a protein source</b>, then fill in around it. Build around the carb and you will miss.</p>' +
-         '<p><b>One shake a day, and it is the bedtime one.</b> This day gets ~177 g from real food. Powder fills gaps; it does not carry the load.</p>' +
+         '<p><b>One shake a day, and it is the bedtime one.</b> Powder fills gaps; it does not carry the load.</p>' +
          '<p><b>Measure the oil. Eyeball the broccoli.</b> Two tbsp of olive oil is 240 cal — 10% of your day in something you would barely notice pouring. Vegetables are effectively free.</p>' +
        '</div>';
 
   h += '<div class="note">' +
          '<h3>What actually decides this</h3>' +
-         '<p><b>Track for two weeks, then stop.</b> Food scale, MyFitnessPal or Cronometer. Long enough to learn what 6 oz of chicken and 1 tbsp of oil really look like — then you can eyeball it. Most failed cuts are a measurement problem, not a willpower problem.</p>' +
+         '<p><b>Track for two weeks, then stop.</b> Food scale, MyFitnessPal or Cronometer. Long enough to learn what 6 oz of protein and 1 tbsp of oil really look like — then you can eyeball it. Most failed cuts are a measurement problem, not a willpower problem.</p>' +
          '<p><b>Weigh daily, same time, average the week.</b> Daily weight is mostly water and it will lie to you. If the weekly average is not dropping ~1 lb after two weeks, <b>cut 200 cal — do not add cardio first.</b></p>' +
        '</div>';
 
   main.innerHTML = h;
+
+  main.querySelectorAll(".segb").forEach(function(b){
+    b.onclick = function(){
+      DB.plan = b.getAttribute("data-plan");
+      save(DB);
+      renderFuel(main);
+      window.scrollTo(0,0);
+    };
+  });
 }
 
 function renderNotes(main){

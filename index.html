@@ -597,27 +597,33 @@ const PLANS = {
   omni: {
     label:"Omnivore",
     meals:[
-      {name:"Breakfast", time:"~7:00", items:[
+      {name:"Breakfast · pre-workout", time:"~7:00", items:[
         {f:"3 whole eggs",                   cal:210, p:18, c:2,  ft:15},
         {f:"3 egg whites",                   cal:50,  p:11, c:1,  ft:0},
         {f:"1 cup oats (dry, 80 g)",         cal:300, p:10, c:54, ft:5},
         {f:"1 cup blueberries",              cal:85,  p:1,  c:21, ft:0},
         {f:"Black coffee",                   cal:5,   p:0,  c:0,  ft:0}
       ]},
-      {name:"Lunch", time:"~12:30", items:[
+      {name:"Top-off (optional)", time:"~11:15", items:[
+        {f:"½ banana — fast carbs, 45 min pre",cal:53, p:1,  c:14, ft:0},
+        {f:"Coffee — pre-workout",           cal:5,   p:0,  c:0,  ft:0}
+      ]},
+      {name:"Post-workout snack", time:"~12:45", items:[
+        {f:"1 scoop whey in water — fast protein",cal:120,p:24,c:3,ft:1},
+        {f:"½ banana",                       cal:52,  p:1,  c:13, ft:0}
+      ]},
+      {name:"Lunch · recovery meal", time:"~1:30", items:[
         {f:"6 oz chicken breast, grilled",   cal:280, p:53, c:0,  ft:6},
         {f:"1 cup jasmine rice, cooked",     cal:205, p:4,  c:45, ft:0},
-        {f:"Mixed salad + 1 tbsp olive oil", cal:145, p:2,  c:8,  ft:14}
+        {f:"1 medium sweet potato",          cal:105, p:2,  c:24, ft:0}
       ]},
-      {name:"Pre-gym", time:"~4:30", items:[
-        {f:"1 cup nonfat Greek yogurt",      cal:130, p:23, c:9,  ft:0},
-        {f:"1 medium banana",                cal:105, p:1,  c:27, ft:0}
+      {name:"Afternoon snack", time:"~4:30", items:[
+        {f:"1 cup nonfat Greek yogurt",      cal:130, p:23, c:9,  ft:0}
       ]},
-      {name:"Dinner", time:"~7:30", items:[
+      {name:"Dinner · lighter", time:"~7:30", items:[
         {f:"6 oz 93/7 ground beef",          cal:265, p:46, c:0,  ft:9},
-        {f:"1 medium sweet potato",          cal:105, p:2,  c:24, ft:0},
         {f:"2 cups roasted broccoli",        cal:90,  p:6,  c:14, ft:1},
-        {f:"1 tbsp olive oil (cooking)",     cal:120, p:0,  c:0,  ft:14}
+        {f:"Mixed salad + 1 tbsp olive oil", cal:145, p:2,  c:8,  ft:14}
       ]},
       {name:"Pre-sleep", time:"~10:30", items:[
         {f:"40 g micellar casein, in water", cal:160, p:36, c:4,  ft:1}
@@ -628,25 +634,31 @@ const PLANS = {
   veg: {
     label:"Vegetarian",
     meals:[
-      {name:"Breakfast", time:"~7:00", items:[
+      {name:"Breakfast · pre-workout", time:"~7:00", items:[
         {f:"3 whole eggs",                   cal:210, p:18, c:2,  ft:15},
         {f:"3 egg whites",                   cal:50,  p:11, c:1,  ft:0},
         {f:"1 cup oats (dry, 80 g)",         cal:300, p:10, c:54, ft:5},
         {f:"1 cup blueberries",              cal:85,  p:1,  c:21, ft:0}
       ]},
-      {name:"Lunch", time:"~12:30", items:[
-        {f:"1 cup cottage cheese (low-fat)", cal:165, p:28, c:6,  ft:2},
-        {f:"1 cup lentils, cooked",          cal:230, p:18, c:40, ft:1},
-        {f:"Mixed salad + 1 tbsp olive oil", cal:145, p:2,  c:8,  ft:14}
+      {name:"Top-off (optional)", time:"~11:15", items:[
+        {f:"½ banana — fast carbs, 45 min pre",cal:53, p:1,  c:14, ft:0},
+        {f:"Coffee — pre-workout",           cal:5,   p:0,  c:0,  ft:0}
       ]},
-      {name:"Pre-gym", time:"~4:30", items:[
+      {name:"Post-workout snack", time:"~12:45", items:[
         {f:"1 cup nonfat Greek yogurt",      cal:130, p:23, c:9,  ft:0},
-        {f:"1 medium banana",                cal:105, p:1,  c:27, ft:0}
+        {f:"½ banana",                       cal:52,  p:1,  c:13, ft:0}
       ]},
-      {name:"Dinner", time:"~7:30", items:[
+      {name:"Lunch · recovery meal", time:"~1:30", items:[
+        {f:"1 cup lentils, cooked",          cal:230, p:18, c:40, ft:1},
+        {f:"1 cup cottage cheese (low-fat)", cal:165, p:28, c:6,  ft:2},
+        {f:"1 cup jasmine rice, cooked",     cal:205, p:4,  c:45, ft:0}
+      ]},
+      {name:"Afternoon snack", time:"~4:30", items:[
+        {f:"1 oz almonds",                   cal:165, p:6,  c:6,  ft:14}
+      ]},
+      {name:"Dinner · lighter", time:"~7:30", items:[
         {f:"8 oz extra-firm tofu, seared",   cal:260, p:28, c:8,  ft:14},
         {f:"1 cup edamame, shelled",         cal:190, p:18, c:14, ft:8},
-        {f:"1 cup jasmine rice, cooked",     cal:205, p:4,  c:45, ft:0},
         {f:"2 cups roasted broccoli",        cal:90,  p:6,  c:14, ft:1}
       ]},
       {name:"Pre-sleep", time:"~10:30", items:[
@@ -752,9 +764,16 @@ function renderFuel(main){
   h += '</div>';
 
   h += '<div class="note">' +
+         '<h3>Timing this around a noon workout</h3>' +
+         '<p><b>Breakfast is your fuel</b> — it digests for ~4 hrs and lands right as you train. The optional 11:15 top-off is only if you feel low; ½ banana and coffee, nothing heavy.</p>' +
+         '<p><b>Lunch is your recovery meal</b> — the biggest protein-and-carb hit of the day, eaten right after you finish. The post-workout snack bridges the gap between the gym and that meal so you are not walking around catabolic for an hour.</p>' +
+         '<p><b>Dinner is lighter</b> — you are not training on it, so the starch comes out and it is mostly protein and veg.</p>' +
+       '</div>';
+
+  h += '<div class="note">' +
          '<h3>The rules that matter more than this table</h3>' +
          '<p><b>Anchor every meal on a protein source</b>, then fill in around it. Build around the carb and you will miss.</p>' +
-         '<p><b>One shake a day, and it is the bedtime one.</b> Powder fills gaps; it does not carry the load.</p>' +
+         '<p><b>Two protein hits, two jobs:</b> a fast one right after the gym (' + (key === "veg" ? "Greek yogurt" : "whey") + ') and slow casein before bed. Do not add a third — powder fills gaps, it does not carry the load.</p>' +
          '<p><b>Measure the oil. Eyeball the broccoli.</b> Two tbsp of olive oil is 240 cal — 10% of your day in something you would barely notice pouring. Vegetables are effectively free.</p>' +
        '</div>';
 

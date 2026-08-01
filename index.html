@@ -137,6 +137,41 @@
   .flag.none{background:transparent;color:var(--ink-faint);border:1px solid var(--line)}
   .chev{flex:0 0 auto;color:var(--ink-faint);font-size:12px;transition:transform .18s ease}
   .ex.open .chev{transform:rotate(90deg)}
+
+  .editbtn{
+    flex:0 0 auto;background:none;border:none;cursor:pointer;
+    color:var(--ink-faint);font-size:15px;padding:2px 6px;line-height:1;
+    margin-right:-2px;
+  }
+  .editbtn:active{color:var(--accent)}
+  .editdot{color:var(--accent);font-weight:900}
+
+  .editor{
+    border-top:1px solid var(--line);
+    background:var(--panel-2);
+    padding:14px;
+  }
+  .editor label{
+    display:block;font-family:var(--mono);font-size:10px;color:var(--ink-faint);
+    letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px;
+  }
+  .editor input{
+    width:100%;background:var(--panel);border:1px solid var(--line);border-radius:8px;
+    color:var(--ink);font-size:16px;padding:9px 10px;
+  }
+  .editor input[type=number]{font-family:var(--mono);text-align:center;-moz-appearance:textfield}
+  .editor input:focus{outline:none;border-color:var(--accent)}
+  .edrow{margin-bottom:11px}
+  .edgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:11px}
+  .edbtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+  .edbtns button{
+    border:none;border-radius:8px;cursor:pointer;
+    font-family:var(--mono);font-size:12px;font-weight:700;
+    letter-spacing:.04em;text-transform:uppercase;padding:11px 14px;
+  }
+  .edsave{background:var(--accent);color:#fff;flex:1}
+  .edcancel{background:var(--panel);border:1px solid var(--line)!important;color:var(--ink-dim)}
+  .edreset{background:transparent;border:1px solid #e5b4b4!important;color:#b3261e;flex-basis:100%}
   .ex-body{display:none;border-top:1px solid var(--line);padding:12px 14px 14px}
   .block .ex-body{border-top:1px solid rgba(29,78,216,.15)}
   .ex.open .ex-body{display:block}
@@ -204,6 +239,43 @@
     transition:opacity .2s,transform .2s;z-index:40;
   }
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* ---------- floating rest timer ---------- */
+  .timer{
+    position:fixed;right:12px;z-index:35;
+    bottom:calc(env(safe-area-inset-bottom) + 74px);
+    display:none;                 /* shown only on workout tabs via JS */
+    align-items:stretch;
+    border-radius:12px;overflow:hidden;
+    box-shadow:0 4px 16px rgba(13,17,23,.22);
+    border:1px solid var(--line);
+    background:var(--ink);
+  }
+  .timer.on{display:flex}
+  .timer-face{
+    background:none;border:none;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:8px 14px;min-width:82px;
+  }
+  .timer-time{
+    font-family:var(--mono);font-size:22px;font-weight:800;line-height:1;
+    color:#fff;letter-spacing:.02em;font-variant-numeric:tabular-nums;
+  }
+  .timer-hint{
+    font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;
+    color:#8b95a3;margin-top:3px;
+  }
+  .timer.running .timer-time{color:var(--go)}
+  .timer.running .timer-hint{color:var(--go)}
+  .timer-reset{
+    background:rgba(255,255,255,.08);border:none;cursor:pointer;
+    border-left:1px solid rgba(255,255,255,.14);
+    color:#8b95a3;font-size:17px;padding:0 13px;
+  }
+  .timer-reset:active{background:rgba(255,255,255,.16);color:#fff}
+  /* pulse the ring when a common rest interval elapses */
+  @keyframes tflash{0%,100%{background:var(--ink)}50%{background:#1d3a2c}}
+  .timer.flash{animation:tflash .5s ease 3}
 
   /* ---------- fuel tab ---------- */
   .seg{
@@ -295,6 +367,14 @@
 
 <div class="toast" id="toast">Saved</div>
 
+<div class="timer" id="timer">
+  <button class="timer-face" id="timerFace">
+    <span class="timer-time" id="timerTime">0:00</span>
+    <span class="timer-hint" id="timerHint">tap to start</span>
+  </button>
+  <button class="timer-reset" id="timerReset" aria-label="Reset timer">↺</button>
+</div>
+
 <script>
 const PROGRAM = {
   lowerA: {
@@ -310,14 +390,14 @@ const PROGRAM = {
   },
   upperA: {
     label:"Upper A", title:"Upper A — Horizontal Push / Pull", dur:"~58 min",
-    blocks:{ A:{desc:"Push / pull antagonists"}, B:{desc:"B2 runs 1 extra set solo"} },
+    blocks:{ A:{desc:"Heavy push / pull — rest 90 s between"}, B:{desc:"Push / pull antagonists"}, C:{desc:"C2 runs 1 extra set solo"} },
     lifts:[
-      {id:"bench",     name:"Barbell Bench Press", sets:4, lo:5,  hi:7,  rir:2, rest:"3 min", inc:5, group:null},
-      {id:"csrow",     name:"Chest-Supported Row", sets:4, lo:8,  hi:10, rir:1, rest:"2 min", inc:5, group:null},
-      {id:"inclinedb", name:"Incline DB Press",    sets:3, lo:10, hi:12, rir:1, rest:"45 s",  inc:5, group:"A", slot:"A1", alt:"Machine incline press"},
-      {id:"cablerow",  name:"Cable Row (neutral)", sets:3, lo:10, hi:12, rir:1, rest:"45 s",  inc:5, group:"A", slot:"A2", alt:"Single-arm DB row"},
-      {id:"fly",       name:"Cable Fly",           sets:2, lo:12, hi:15, rir:0, rest:"40 s",  inc:5, group:"B", slot:"B1", alt:"Pec deck"},
-      {id:"facepull",  name:"Face Pull",           sets:3, lo:15, hi:20, rir:1, rest:"40 s",  inc:5, group:"B", slot:"B2", alt:"Band pull-apart"}
+      {id:"bench",     name:"Barbell Bench Press", sets:4, lo:5,  hi:7,  rir:2, rest:"90 s", inc:5, group:"A", slot:"A1", alt:"DB bench press"},
+      {id:"csrow",     name:"Chest-Supported Row", sets:4, lo:8,  hi:10, rir:1, rest:"90 s", inc:5, group:"A", slot:"A2", alt:"Seated cable row"},
+      {id:"inclinedb", name:"Incline DB Press",    sets:3, lo:10, hi:12, rir:1, rest:"45 s",  inc:5, group:"B", slot:"B1", alt:"Machine incline press"},
+      {id:"cablerow",  name:"Cable Row (neutral)", sets:3, lo:10, hi:12, rir:1, rest:"45 s",  inc:5, group:"B", slot:"B2", alt:"Single-arm DB row"},
+      {id:"fly",       name:"Cable Fly",           sets:2, lo:12, hi:15, rir:0, rest:"40 s",  inc:5, group:"C", slot:"C1", alt:"Pec deck"},
+      {id:"facepull",  name:"Face Pull",           sets:3, lo:15, hi:20, rir:1, rest:"40 s",  inc:5, group:"C", slot:"C2", alt:"Band pull-apart"}
     ]
   },
   lowerB: {
@@ -333,14 +413,14 @@ const PROGRAM = {
   },
   upperB: {
     label:"Upper B", title:"Upper B — Vertical Push / Pull", dur:"~59 min",
-    blocks:{ A:{desc:"Pull / push antagonists"}, B:{desc:"B1 runs 2 extra sets solo"} },
+    blocks:{ A:{desc:"Heavy pull / push — rest 90 s between"}, B:{desc:"Pull / push antagonists"}, C:{desc:"C1 runs 2 extra sets solo"} },
     lifts:[
-      {id:"pullup",   name:"Weighted Pull-up",        sets:4, lo:6,  hi:8,  rir:2, rest:"3 min",   inc:5, group:null},
-      {id:"ohp",      name:"Standing Overhead Press", sets:4, lo:6,  hi:8,  rir:2, rest:"2.5 min", inc:5, group:null},
-      {id:"pulldown", name:"Lat Pulldown (wide)",     sets:3, lo:10, hi:12, rir:1, rest:"45 s",    inc:5, group:"A", slot:"A1", alt:"Machine pulldown"},
-      {id:"dip",      name:"Weighted Dip",            sets:3, lo:8,  hi:10, rir:1, rest:"45 s",    inc:5, group:"A", slot:"A2", alt:"Close-grip bench"},
-      {id:"latraise", name:"DB Lateral Raise",        sets:4, lo:12, hi:15, rir:0, rest:"40 s",    inc:5, group:"B", slot:"B1", alt:"Cable lateral raise"},
-      {id:"sapd",     name:"Straight-Arm Pulldown",   sets:2, lo:12, hi:15, rir:0, rest:"40 s",    inc:5, group:"B", slot:"B2", alt:"DB pullover"}
+      {id:"pullup",   name:"Weighted Pull-up",        sets:4, lo:6,  hi:8,  rir:2, rest:"90 s", inc:5, group:"A", slot:"A1", alt:"Lat pulldown"},
+      {id:"ohp",      name:"Standing Overhead Press", sets:4, lo:6,  hi:8,  rir:2, rest:"90 s", inc:5, group:"A", slot:"A2", alt:"Seated DB press"},
+      {id:"pulldown", name:"Lat Pulldown (wide)",     sets:3, lo:10, hi:12, rir:1, rest:"45 s",    inc:5, group:"B", slot:"B1", alt:"Machine pulldown"},
+      {id:"dip",      name:"Weighted Dip",            sets:3, lo:8,  hi:10, rir:1, rest:"45 s",    inc:5, group:"B", slot:"B2", alt:"Close-grip bench"},
+      {id:"latraise", name:"DB Lateral Raise",        sets:4, lo:12, hi:15, rir:0, rest:"40 s",    inc:5, group:"C", slot:"C1", alt:"Cable lateral raise"},
+      {id:"sapd",     name:"Straight-Arm Pulldown",   sets:2, lo:12, hi:15, rir:0, rest:"40 s",    inc:5, group:"C", slot:"C2", alt:"DB pullover"}
     ]
   },
   arms: {
@@ -409,6 +489,60 @@ function verdict(lift){
   return {cls:"hold", text:"= Build reps", cue:"Stay at " + topW + " lb. Push toward " + lift.hi + "."};
 }
 
+/* =========================================================
+   EDITS — user overrides layered over the built-in PROGRAM.
+   Stored at DB.edits[dayKey][liftId] = {name,sets,lo,hi,rir,rest}.
+   The exercise id never changes, so logs stay attached and a
+   reset is just deleting the override.
+   ========================================================= */
+const EDITABLE = ["name","sets","lo","hi","rir","rest"];
+let editingId = null;   // liftId currently open in the editor, or null
+
+function liftEdit(dayKey, liftId){
+  return (DB.edits && DB.edits[dayKey] && DB.edits[dayKey][liftId]) || null;
+}
+
+function isEdited(dayKey, liftId){
+  const e = liftEdit(dayKey, liftId);
+  return !!(e && Object.keys(e).length);
+}
+
+// Returns a shallow copy of the day with overrides applied to each lift.
+function resolveDay(dayKey){
+  const base = PROGRAM[dayKey];
+  const merged = { label:base.label, title:base.title, dur:base.dur, blocks:base.blocks };
+  merged.lifts = base.lifts.map(function(lift){
+    const e = liftEdit(dayKey, lift.id);
+    if(!e) return lift;
+    const out = {};
+    for(const k in lift) out[k] = lift[k];
+    EDITABLE.forEach(function(k){ if(e[k] !== undefined && e[k] !== null && e[k] !== "") out[k] = e[k]; });
+    return out;
+  });
+  return merged;
+}
+
+function saveEdit(dayKey, liftId, patch){
+  if(!DB.edits) DB.edits = {};
+  if(!DB.edits[dayKey]) DB.edits[dayKey] = {};
+  const cur = DB.edits[dayKey][liftId] || {};
+  EDITABLE.forEach(function(k){
+    if(patch[k] === undefined) return;
+    // store only values that differ from the built-in original
+    const orig = PROGRAM[dayKey].lifts.filter(function(l){return l.id===liftId;})[0][k];
+    if(String(patch[k]) === String(orig)) delete cur[k];
+    else cur[k] = patch[k];
+  });
+  if(Object.keys(cur).length) DB.edits[dayKey][liftId] = cur;
+  else delete DB.edits[dayKey][liftId];
+  save(DB);
+}
+
+function resetEdit(dayKey, liftId){
+  if(DB.edits && DB.edits[dayKey]) delete DB.edits[dayKey][liftId];
+  save(DB);
+}
+
 function renderNav(){
   const nav = document.getElementById("nav");
   nav.innerHTML = "";
@@ -453,6 +587,7 @@ document.getElementById("wkNext").onclick = function(){ setWeek(DB.week + 1); };
 function buildCard(lift, day){
   const v = verdict(lift);
   const last = lastEntry(lift.id);
+  const edited = isEdited(currentDay, lift.id);
 
   const card = document.createElement("div");
   card.className = "ex";
@@ -462,13 +597,69 @@ function buildCard(lift, day){
   head.innerHTML =
     (lift.slot ? '<div class="slot">' + lift.slot + '</div>' : '') +
     '<div class="ex-name">' +
-      '<div class="n">' + lift.name + '</div>' +
+      '<div class="n">' + lift.name + (edited ? ' <span class="editdot" title="edited">•</span>' : '') + '</div>' +
       '<div class="m">' + lift.sets + ' × ' + lift.lo + '–' + lift.hi + ' · ' + lift.rir + ' RIR · ' + lift.rest + '</div>' +
     '</div>' +
     '<div class="flag ' + v.cls + '">' + v.text + '</div>' +
+    '<button class="editbtn" aria-label="Edit exercise">✎</button>' +
     '<div class="chev">▶</div>';
-  head.onclick = function(){ card.classList.toggle("open"); };
+  // chevron / name toggles the log body; pencil opens the editor
+  head.querySelector(".ex-name").onclick = function(){ card.classList.toggle("open"); };
+  head.querySelector(".chev").onclick = function(){ card.classList.toggle("open"); };
+  head.querySelector(".slot") && (head.querySelector(".slot").onclick = function(){ card.classList.toggle("open"); });
+  head.querySelector(".editbtn").onclick = function(e){
+    e.stopPropagation();
+    editingId = (editingId === lift.id) ? null : lift.id;
+    renderMain();
+  };
   card.appendChild(head);
+
+  // ---- inline editor ----
+  if(editingId === lift.id){
+    card.classList.add("open");
+    const ed = document.createElement("div");
+    ed.className = "editor";
+    ed.innerHTML =
+      '<div class="edrow"><label>Exercise</label>' +
+        '<input type="text" id="ed_name" value="' + lift.name.replace(/"/g,'&quot;') + '"></div>' +
+      '<div class="edgrid">' +
+        '<div><label>Sets</label><input type="number" inputmode="numeric" id="ed_sets" value="' + lift.sets + '" min="1" max="10"></div>' +
+        '<div><label>Reps low</label><input type="number" inputmode="numeric" id="ed_lo" value="' + lift.lo + '" min="1"></div>' +
+        '<div><label>Reps high</label><input type="number" inputmode="numeric" id="ed_hi" value="' + lift.hi + '" min="1"></div>' +
+        '<div><label>RIR</label><input type="number" inputmode="numeric" id="ed_rir" value="' + lift.rir + '" min="0" max="5"></div>' +
+      '</div>' +
+      '<div class="edrow"><label>Rest</label>' +
+        '<input type="text" id="ed_rest" value="' + lift.rest.replace(/"/g,'&quot;') + '" placeholder="e.g. 90 s"></div>' +
+      '<div class="edbtns">' +
+        '<button class="edsave" id="ed_save">Save</button>' +
+        '<button class="edcancel" id="ed_cancel">Cancel</button>' +
+        (edited ? '<button class="edreset" id="ed_reset">Reset to original</button>' : '') +
+      '</div>';
+    card.appendChild(ed);
+
+    ed.querySelector("#ed_save").onclick = function(){
+      const patch = {
+        name: ed.querySelector("#ed_name").value.trim() || lift.name,
+        sets: Math.max(1, Math.min(10, parseInt(ed.querySelector("#ed_sets").value,10) || lift.sets)),
+        lo:   Math.max(1, parseInt(ed.querySelector("#ed_lo").value,10) || lift.lo),
+        hi:   Math.max(1, parseInt(ed.querySelector("#ed_hi").value,10) || lift.hi),
+        rir:  Math.max(0, Math.min(5, parseInt(ed.querySelector("#ed_rir").value,10) || 0)),
+        rest: ed.querySelector("#ed_rest").value.trim() || lift.rest
+      };
+      if(patch.hi < patch.lo){ const t=patch.lo; patch.lo=patch.hi; patch.hi=t; }  // keep lo<=hi
+      saveEdit(currentDay, lift.id, patch);
+      editingId = null;
+      draft[lift.id] = null;   // set count may have changed; rebuild draft rows
+      renderMain();
+    };
+    ed.querySelector("#ed_cancel").onclick = function(){ editingId = null; renderMain(); };
+    if(edited) ed.querySelector("#ed_reset").onclick = function(){
+      resetEdit(currentDay, lift.id);
+      editingId = null;
+      draft[lift.id] = null;
+      renderMain();
+    };
+  }
 
   const body = document.createElement("div");
   body.className = "ex-body";
@@ -533,6 +724,7 @@ function buildCard(lift, day){
 }
 
 function renderMain(){
+  var _tv = document.getElementById("timer"); if(_tv){ setTimeout(updateTimerVisibility, 0); }
   const main = document.getElementById("main");
   const bar  = document.getElementById("savebar");
   main.innerHTML = "";
@@ -541,7 +733,7 @@ function renderMain(){
   if(currentDay === "fuel"){  bar.style.display="none"; renderFuel(main);  return; }
   bar.style.display = "flex";
 
-  const day = PROGRAM[currentDay];
+  const day = resolveDay(currentDay);
 
   const t = document.createElement("div");
   t.className = "daytitle";
@@ -872,7 +1064,7 @@ function toast(m){
 }
 
 document.getElementById("saveBtn").onclick = function(){
-  const day = PROGRAM[currentDay];
+  const day = resolveDay(currentDay);
   const stamp = new Date().toLocaleDateString("en-US",{month:"short",day:"numeric"});
   let n = 0;
 
@@ -899,7 +1091,7 @@ document.getElementById("saveBtn").onclick = function(){
 };
 
 document.getElementById("fillBtn").onclick = function(){
-  const day = PROGRAM[currentDay];
+  const day = resolveDay(currentDay);
   let n = 0;
   day.lifts.forEach(function(lift){
     const last = lastEntry(lift.id);
@@ -916,8 +1108,78 @@ document.getElementById("fillBtn").onclick = function(){
   toast("Prefilled from last");
 };
 
+/* =========================================================
+   REST TIMER — count-up stopwatch, floating on workout tabs.
+   Wall-clock based so it stays accurate if the tab backgrounds.
+   ========================================================= */
+var timerRunning = false;
+var timerBase = 0;        // ms already accumulated before current run
+var timerStart = 0;       // Date.now() when the current run began
+var timerTick = null;
+var timerFlashedAt = -1;  // last rest-interval (s) we flashed on
+
+function timerElapsedMs(){
+  return timerBase + (timerRunning ? (Date.now() - timerStart) : 0);
+}
+
+function fmtTime(ms){
+  var s = Math.floor(ms/1000);
+  var m = Math.floor(s/60);
+  s = s % 60;
+  return m + ":" + (s < 10 ? "0" : "") + s;
+}
+
+function paintTimer(){
+  var el = document.getElementById("timer");
+  var t  = document.getElementById("timerTime");
+  var h  = document.getElementById("timerHint");
+  var secs = Math.floor(timerElapsedMs()/1000);
+  t.textContent = fmtTime(timerElapsedMs());
+  el.classList.toggle("running", timerRunning);
+  h.textContent = timerRunning ? "running · tap to pause" : (secs > 0 ? "paused · tap to resume" : "tap to start");
+
+  // subtle flash as each common rest interval passes (45 / 90 s)
+  if(timerRunning && (secs === 45 || secs === 90) && secs !== timerFlashedAt){
+    timerFlashedAt = secs;
+    el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+  }
+}
+
+function timerStartPause(){
+  if(timerRunning){
+    timerBase = timerElapsedMs();
+    timerRunning = false;
+    clearInterval(timerTick); timerTick = null;
+  } else {
+    timerStart = Date.now();
+    timerRunning = true;
+    timerFlashedAt = -1;
+    timerTick = setInterval(paintTimer, 200);
+  }
+  paintTimer();
+}
+
+function timerReset(){
+  timerRunning = false;
+  timerBase = 0; timerStart = 0; timerFlashedAt = -1;
+  clearInterval(timerTick); timerTick = null;
+  document.getElementById("timer").classList.remove("flash");
+  paintTimer();
+}
+
+// show the timer only on the five workout tabs
+function updateTimerVisibility(){
+  var show = (currentDay !== "notes" && currentDay !== "fuel");
+  document.getElementById("timer").classList.toggle("on", show);
+}
+
+document.getElementById("timerFace").onclick  = timerStartPause;
+document.getElementById("timerReset").onclick = timerReset;
+
 renderNav();
 renderMain();
+paintTimer();
+updateTimerVisibility();
 </script>
 </body>
 </html>

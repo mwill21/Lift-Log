@@ -151,6 +151,11 @@
     background:var(--panel-2);
     padding:14px;
   }
+  .ednote{
+    font-family:var(--mono);font-size:10px;color:var(--accent);
+    letter-spacing:.06em;text-transform:uppercase;font-weight:700;
+    margin-bottom:11px;
+  }
   .editor label{
     display:block;font-family:var(--mono);font-size:10px;color:var(--ink-faint);
     letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px;
@@ -161,8 +166,7 @@
   }
   .editor input[type=number]{font-family:var(--mono);text-align:center;-moz-appearance:textfield}
   .editor input:focus{outline:none;border-color:var(--accent)}
-  .edrow{margin-bottom:11px}
-  .edgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:11px}
+  .edrow{margin-bottom:11px}  .edgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:11px}
   .edbtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
   .edbtns button{
     border:none;border-radius:8px;cursor:pointer;
@@ -293,6 +297,19 @@
   .segb + .segb{border-left:1px solid var(--line)}
   .segb.on{background:var(--ink);color:#fff}
 
+  /* per-meal variant chooser */
+  .mealseg{
+    display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;
+  }
+  .mseg{
+    flex:1 1 auto;min-width:0;
+    background:var(--panel);border:1px solid var(--line);border-radius:8px;
+    cursor:pointer;color:var(--ink-dim);
+    font-size:12px;font-weight:600;
+    padding:9px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .mseg.on{background:var(--accent);border-color:var(--accent);color:#fff}
+
   .tot{
     display:grid;grid-template-columns:repeat(4,1fr);
     gap:1px;background:var(--line);
@@ -362,7 +379,6 @@
 
 <div class="savebar" id="savebar">
   <button id="saveBtn">Save session</button>
-  <button class="ghost" id="fillBtn">Prefill</button>
 </div>
 
 <div class="toast" id="toast">Saved</div>
@@ -442,8 +458,8 @@ const DAY_ORDER = ["lowerA","upperA","lowerB","upperB","arms"];
 const KEY = "liftlog.v1";
 
 function load(){
-  try{ const r = localStorage.getItem(KEY); return r ? JSON.parse(r) : {week:1, log:{}}; }
-  catch(e){ return {week:1, log:{}}; }
+  try{ const r = localStorage.getItem(KEY); return r ? JSON.parse(r) : {week:1}; }
+  catch(e){ return {week:1}; }
 }
 function save(db){
   try{ localStorage.setItem(KEY, JSON.stringify(db)); }
@@ -451,25 +467,66 @@ function save(db){
 }
 
 let DB = load();
+migrate(DB);
+save(DB);
 let currentDay = DAY_ORDER[0];
-let draft = {};
 
-// Most recent *non-deload* session. Deload weeks are logged but never
-// drive the progression call — otherwise week 8 would tell you to
-// deload again off the back of week 7's reduced load.
-function lastEntry(id){
-  const a = DB.log[id];
-  if(!a || !a.length) return null;
-  for(let i = a.length - 1; i >= 0; i--){
-    if(a[i].week !== DELOAD_WEEK) return a[i];
+/* -----------------------------------------------------------
+   PER-WEEK STORAGE MODEL
+   DB.weekLog[week][liftId] = [{w,r}, ...]   saved box contents
+   DB.edits[week][dayKey][liftId] = {name,sets,lo,hi,rir,rest}
+   Both keyed by week first, so every week is an independent copy.
+   ----------------------------------------------------------- */
+
+// One-time migration from the old flat model into the per-week structure.
+function migrate(db){
+  if(db._v === 2) return;
+  const newLog = {};
+  if(db.log){
+    for(const id in db.log){
+      (db.log[id] || []).forEach(function(entry){
+        const w = entry.week || 1;
+        if(!newLog[w]) newLog[w] = {};
+        newLog[w][id] = (entry.sets || []).map(function(s){ return {w:s.w, r:s.r}; });
+      });
+    }
+  }
+  const newEdits = {};
+  if(db.edits){
+    // old edits were global; attach them to the current week only.
+    newEdits[db.week || 1] = db.edits;
+  }
+  db.weekLog = newLog;
+  db.edits = newEdits;
+  delete db.log;
+  db._v = 2;
+}
+
+function weekLog(week){
+  if(!DB.weekLog) DB.weekLog = {};
+  if(!DB.weekLog[week]) DB.weekLog[week] = {};
+  return DB.weekLog[week];
+}
+
+function savedRows(week, liftId){
+  const wl = DB.weekLog && DB.weekLog[week];
+  return (wl && wl[liftId]) || null;
+}
+
+// Most recent PRIOR week (before `week`) with logged rows, skipping deload.
+function priorEntry(week, liftId){
+  for(let w = week - 1; w >= 1; w--){
+    if(w === DELOAD_WEEK) continue;
+    const rows = savedRows(w, liftId);
+    if(rows && rows.some(function(s){ return s.w !== "" || s.r !== ""; })) return {week:w, rows:rows};
   }
   return null;
 }
 
-function verdict(lift){
-  const last = lastEntry(lift.id);
-  if(!last) return {cls:"none", text:"No data", cue:"Log a session to get a call."};
-  const sets = last.sets.filter(s => s.r !== "" && s.r != null);
+function verdict(lift, week){
+  const prev = priorEntry(week, lift.id);
+  if(!prev) return {cls:"none", text:"No data", cue:"Log a session to get a call."};
+  const sets = prev.rows.filter(s => s.r !== "" && s.r != null);
   if(!sets.length) return {cls:"none", text:"No data", cue:"Log a session to get a call."};
 
   const allTop = sets.every(s => Number(s.r) >= lift.hi);
@@ -490,29 +547,34 @@ function verdict(lift){
 }
 
 /* =========================================================
-   EDITS — user overrides layered over the built-in PROGRAM.
-   Stored at DB.edits[dayKey][liftId] = {name,sets,lo,hi,rir,rest}.
-   The exercise id never changes, so logs stay attached and a
-   reset is just deleting the override.
+   EDITS — now PER-WEEK. DB.edits[week][dayKey][liftId] = patch.
+   Editing on a week touches only that week.
    ========================================================= */
 const EDITABLE = ["name","sets","lo","hi","rir","rest"];
-let editingId = null;   // liftId currently open in the editor, or null
+let editingId = null;
 
-function liftEdit(dayKey, liftId){
-  return (DB.edits && DB.edits[dayKey] && DB.edits[dayKey][liftId]) || null;
+function liftEdit(week, dayKey, liftId){
+  return (DB.edits && DB.edits[week] && DB.edits[week][dayKey] && DB.edits[week][dayKey][liftId]) || null;
 }
 
-function isEdited(dayKey, liftId){
-  const e = liftEdit(dayKey, liftId);
+function isEdited(week, dayKey, liftId){
+  const e = liftEdit(week, dayKey, liftId);
   return !!(e && Object.keys(e).length);
 }
 
-// Returns a shallow copy of the day with overrides applied to each lift.
-function resolveDay(dayKey){
+// Display name a lift had on a specific week (edited name or base).
+function liftNameOn(week, dayKey, liftId){
+  const e = liftEdit(week, dayKey, liftId);
+  if(e && e.name) return e.name;
+  const base = PROGRAM[dayKey].lifts.filter(function(l){return l.id===liftId;})[0];
+  return base ? base.name : liftId;
+}
+
+function resolveDay(dayKey, week){
   const base = PROGRAM[dayKey];
   const merged = { label:base.label, title:base.title, dur:base.dur, blocks:base.blocks };
   merged.lifts = base.lifts.map(function(lift){
-    const e = liftEdit(dayKey, lift.id);
+    const e = liftEdit(week, dayKey, lift.id);
     if(!e) return lift;
     const out = {};
     for(const k in lift) out[k] = lift[k];
@@ -522,24 +584,24 @@ function resolveDay(dayKey){
   return merged;
 }
 
-function saveEdit(dayKey, liftId, patch){
+function saveEdit(week, dayKey, liftId, patch){
   if(!DB.edits) DB.edits = {};
-  if(!DB.edits[dayKey]) DB.edits[dayKey] = {};
-  const cur = DB.edits[dayKey][liftId] || {};
+  if(!DB.edits[week]) DB.edits[week] = {};
+  if(!DB.edits[week][dayKey]) DB.edits[week][dayKey] = {};
+  const cur = DB.edits[week][dayKey][liftId] || {};
   EDITABLE.forEach(function(k){
     if(patch[k] === undefined) return;
-    // store only values that differ from the built-in original
     const orig = PROGRAM[dayKey].lifts.filter(function(l){return l.id===liftId;})[0][k];
     if(String(patch[k]) === String(orig)) delete cur[k];
     else cur[k] = patch[k];
   });
-  if(Object.keys(cur).length) DB.edits[dayKey][liftId] = cur;
-  else delete DB.edits[dayKey][liftId];
+  if(Object.keys(cur).length) DB.edits[week][dayKey][liftId] = cur;
+  else delete DB.edits[week][dayKey][liftId];
   save(DB);
 }
 
-function resetEdit(dayKey, liftId){
-  if(DB.edits && DB.edits[dayKey]) delete DB.edits[dayKey][liftId];
+function resetEdit(week, dayKey, liftId){
+  if(DB.edits && DB.edits[week] && DB.edits[week][dayKey]) delete DB.edits[week][dayKey][liftId];
   save(DB);
 }
 
@@ -550,7 +612,7 @@ function renderNav(){
     const b = document.createElement("button");
     b.textContent = PROGRAM[d].label;
     if(d === currentDay) b.className = "on";
-    b.onclick = function(){ currentDay=d; draft={}; renderNav(); renderMain(); window.scrollTo(0,0); };
+    b.onclick = function(){ currentDay=d; editingId=null; renderNav(); renderMain(); window.scrollTo(0,0); };
     nav.appendChild(b);
   });
   [["fuel","Fuel"],["notes","Plan"]].forEach(function(pair){
@@ -585,9 +647,18 @@ document.getElementById("wkPrev").onclick = function(){ setWeek(DB.week - 1); };
 document.getElementById("wkNext").onclick = function(){ setWeek(DB.week + 1); };
 
 function buildCard(lift, day){
-  const v = verdict(lift);
-  const last = lastEntry(lift.id);
-  const edited = isEdited(currentDay, lift.id);
+  const wk = DB.week;
+  const v = verdict(lift, wk);
+  const prev = priorEntry(wk, lift.id);
+  const edited = isEdited(wk, currentDay, lift.id);
+
+  // Ensure a saved-rows array exists for this week/lift, sized to sets.
+  const wl = weekLog(wk);
+  if(!wl[lift.id]) wl[lift.id] = [];
+  // grow/shrink to match current set count (edits can change it)
+  while(wl[lift.id].length < lift.sets) wl[lift.id].push({w:"", r:""});
+  if(wl[lift.id].length > lift.sets) wl[lift.id].length = lift.sets;
+  const rows = wl[lift.id];
 
   const card = document.createElement("div");
   card.className = "ex";
@@ -597,13 +668,12 @@ function buildCard(lift, day){
   head.innerHTML =
     (lift.slot ? '<div class="slot">' + lift.slot + '</div>' : '') +
     '<div class="ex-name">' +
-      '<div class="n">' + lift.name + (edited ? ' <span class="editdot" title="edited">•</span>' : '') + '</div>' +
+      '<div class="n">' + lift.name + (edited ? ' <span class="editdot" title="edited this week">•</span>' : '') + '</div>' +
       '<div class="m">' + lift.sets + ' × ' + lift.lo + '–' + lift.hi + ' · ' + lift.rir + ' RIR · ' + lift.rest + '</div>' +
     '</div>' +
     '<div class="flag ' + v.cls + '">' + v.text + '</div>' +
     '<button class="editbtn" aria-label="Edit exercise">✎</button>' +
     '<div class="chev">▶</div>';
-  // chevron / name toggles the log body; pencil opens the editor
   head.querySelector(".ex-name").onclick = function(){ card.classList.toggle("open"); };
   head.querySelector(".chev").onclick = function(){ card.classList.toggle("open"); };
   head.querySelector(".slot") && (head.querySelector(".slot").onclick = function(){ card.classList.toggle("open"); });
@@ -614,12 +684,13 @@ function buildCard(lift, day){
   };
   card.appendChild(head);
 
-  // ---- inline editor ----
+  // ---- inline editor (edits THIS week only) ----
   if(editingId === lift.id){
     card.classList.add("open");
     const ed = document.createElement("div");
     ed.className = "editor";
     ed.innerHTML =
+      '<div class="ednote">Editing Week ' + wk + ' only</div>' +
       '<div class="edrow"><label>Exercise</label>' +
         '<input type="text" id="ed_name" value="' + lift.name.replace(/"/g,'&quot;') + '"></div>' +
       '<div class="edgrid">' +
@@ -646,17 +717,15 @@ function buildCard(lift, day){
         rir:  Math.max(0, Math.min(5, parseInt(ed.querySelector("#ed_rir").value,10) || 0)),
         rest: ed.querySelector("#ed_rest").value.trim() || lift.rest
       };
-      if(patch.hi < patch.lo){ const t=patch.lo; patch.lo=patch.hi; patch.hi=t; }  // keep lo<=hi
-      saveEdit(currentDay, lift.id, patch);
+      if(patch.hi < patch.lo){ const t=patch.lo; patch.lo=patch.hi; patch.hi=t; }
+      saveEdit(wk, currentDay, lift.id, patch);
       editingId = null;
-      draft[lift.id] = null;   // set count may have changed; rebuild draft rows
       renderMain();
     };
     ed.querySelector("#ed_cancel").onclick = function(){ editingId = null; renderMain(); };
     if(edited) ed.querySelector("#ed_reset").onclick = function(){
-      resetEdit(currentDay, lift.id);
+      resetEdit(wk, currentDay, lift.id);
       editingId = null;
-      draft[lift.id] = null;
       renderMain();
     };
   }
@@ -669,9 +738,8 @@ function buildCard(lift, day){
   ch.innerHTML = '<div></div><div>Weight (lb)</div><div>Reps</div><div style="text-align:right">Last</div>';
   body.appendChild(ch);
 
-  if(!draft[lift.id]){
-    draft[lift.id] = Array.from({length:lift.sets}, function(){ return {w:"", r:""}; });
-  }
+  // prior-week name, for the Last column header line
+  const prevName = prev ? liftNameOn(prev.week, currentDay, lift.id) : null;
 
   for(let i=0;i<lift.sets;i++){
     const row = document.createElement("div");
@@ -683,17 +751,17 @@ function buildCard(lift, day){
 
     const wIn = document.createElement("input");
     wIn.type="number"; wIn.inputMode="decimal"; wIn.step="2.5";
-    wIn.placeholder="—"; wIn.value = draft[lift.id][i].w;
-    wIn.oninput = (function(idx){ return function(e){ draft[lift.id][idx].w = e.target.value; }; })(i);
+    wIn.placeholder="—"; wIn.value = rows[i].w;
+    wIn.oninput = (function(idx){ return function(e){ rows[idx].w = e.target.value; save(DB); }; })(i);
 
     const rIn = document.createElement("input");
     rIn.type="number"; rIn.inputMode="numeric"; rIn.step="1";
-    rIn.placeholder="—"; rIn.value = draft[lift.id][i].r;
-    rIn.oninput = (function(idx){ return function(e){ draft[lift.id][idx].r = e.target.value; }; })(i);
+    rIn.placeholder="—"; rIn.value = rows[i].r;
+    rIn.oninput = (function(idx){ return function(e){ rows[idx].r = e.target.value; save(DB); }; })(i);
 
     const p = document.createElement("div");
     p.className = "prev";
-    const ls = last && last.sets[i];
+    const ls = prev && prev.rows[i];
     p.innerHTML = (ls && ls.w !== "" && ls.r !== "") ? '<b>' + ls.w + '</b>×' + ls.r : '—';
 
     row.appendChild(no); row.appendChild(wIn); row.appendChild(rIn); row.appendChild(p);
@@ -714,8 +782,11 @@ function buildCard(lift, day){
 
   const l = document.createElement("div");
   l.className = "last";
+  const prevLabel = prev
+    ? ("Last: Week " + prev.week + (prevName && prevName !== lift.name ? " · " + prevName : ""))
+    : "No prior week";
   l.innerHTML =
-    '<span>' + (last ? "Last: " + last.date : "No history") + '</span>' +
+    '<span>' + prevLabel + '</span>' +
     '<span class="cue ' + (v.cls === "up" ? "up" : "") + '">' + v.cue + '</span>';
   body.appendChild(l);
 
@@ -733,7 +804,7 @@ function renderMain(){
   if(currentDay === "fuel"){  bar.style.display="none"; renderFuel(main);  return; }
   bar.style.display = "flex";
 
-  const day = resolveDay(currentDay);
+  const day = resolveDay(currentDay, DB.week);
 
   const t = document.createElement("div");
   t.className = "daytitle";
@@ -804,18 +875,42 @@ const PLANS = {
         {f:"1 scoop whey in water — fast protein",cal:120,p:24,c:3,ft:1},
         {f:"½ banana",                       cal:52,  p:1,  c:13, ft:0}
       ]},
-      {name:"Lunch · recovery meal", time:"~1:30", items:[
-        {f:"6 oz chicken breast, grilled",   cal:280, p:53, c:0,  ft:6},
-        {f:"1 cup jasmine rice, cooked",     cal:205, p:4,  c:45, ft:0},
-        {f:"1 medium sweet potato",          cal:105, p:2,  c:24, ft:0}
+      {name:"Lunch · recovery meal", time:"~1:30", variants:[
+        {label:"Chicken burrito bowl", items:[
+          {f:"6 oz chicken breast, grilled",  cal:280, p:53, c:0,  ft:6},
+          {f:"¾ cup rice + ½ cup black beans",cal:230, p:8,  c:44, ft:1},
+          {f:"Salsa, ¼ avocado, cilantro",    cal:90,  p:1,  c:6,  ft:7}
+        ]},
+        {label:"Turkey sweet-potato skillet", items:[
+          {f:"6 oz 93/7 ground turkey",       cal:280, p:46, c:0,  ft:10},
+          {f:"1 medium sweet potato, cubed",  cal:130, p:2,  c:30, ft:0},
+          {f:"Peppers, onion, taco spice",    cal:60,  p:2,  c:12, ft:1}
+        ]},
+        {label:"Chicken marinara pasta", items:[
+          {f:"6 oz chicken breast",           cal:280, p:53, c:0,  ft:6},
+          {f:"1 cup penne, cooked",           cal:200, p:7,  c:42, ft:1},
+          {f:"½ cup marinara + 2 tbsp parm",  cal:110, p:6,  c:11, ft:5}
+        ]}
       ]},
       {name:"Afternoon snack", time:"~4:30", items:[
         {f:"1 cup nonfat Greek yogurt",      cal:130, p:23, c:9,  ft:0}
       ]},
-      {name:"Dinner · lighter", time:"~7:30", items:[
-        {f:"6 oz 93/7 ground beef",          cal:265, p:46, c:0,  ft:9},
-        {f:"2 cups roasted broccoli",        cal:90,  p:6,  c:14, ft:1},
-        {f:"Mixed salad + 1 tbsp olive oil", cal:145, p:2,  c:8,  ft:14}
+      {name:"Dinner · lighter", time:"~7:30", variants:[
+        {label:"Beef & broccoli stir-fry", items:[
+          {f:"6 oz flank steak, sliced",      cal:280, p:46, c:2,  ft:10},
+          {f:"2 cups broccoli + peppers",     cal:90,  p:6,  c:14, ft:1},
+          {f:"Soy-garlic sauce + ½ cup rice", cal:130, p:3,  c:26, ft:1}
+        ]},
+        {label:"Baked salmon plate", items:[
+          {f:"6 oz salmon, baked",            cal:330, p:40, c:0,  ft:18},
+          {f:"1 cup roasted baby potatoes",   cal:120, p:3,  c:26, ft:0},
+          {f:"1½ cups green beans, lemon",    cal:55,  p:3,  c:12, ft:0}
+        ]},
+        {label:"Sloppy-joe rice bowl", items:[
+          {f:"6 oz 93/7 ground beef",         cal:265, p:46, c:0,  ft:9},
+          {f:"Sloppy-joe sauce",              cal:70,  p:1,  c:15, ft:1},
+          {f:"½ cup rice + ½ cup corn",       cal:170, p:4,  c:35, ft:1}
+        ]}
       ]},
       {name:"Pre-sleep", time:"~10:30", items:[
         {f:"40 g micellar casein, in water", cal:160, p:36, c:4,  ft:1}
@@ -840,18 +935,42 @@ const PLANS = {
         {f:"1 cup nonfat Greek yogurt",      cal:130, p:23, c:9,  ft:0},
         {f:"½ banana",                       cal:52,  p:1,  c:13, ft:0}
       ]},
-      {name:"Lunch · recovery meal", time:"~1:30", items:[
-        {f:"1 cup lentils, cooked",          cal:230, p:18, c:40, ft:1},
-        {f:"1 cup cottage cheese (low-fat)", cal:165, p:28, c:6,  ft:2},
-        {f:"1 cup jasmine rice, cooked",     cal:205, p:4,  c:45, ft:0}
+      {name:"Lunch · recovery meal", time:"~1:30", variants:[
+        {label:"Curried lentils & rice", items:[
+          {f:"1¼ cup lentils, curried",       cal:290, p:23, c:48, ft:2},
+          {f:"¾ cup rice, cooked",            cal:155, p:3,  c:34, ft:0},
+          {f:"½ cup Greek yogurt, cucumber",  cal:70,  p:12, c:5,  ft:0}
+        ]},
+        {label:"Greek chickpea & feta bowl", items:[
+          {f:"1½ cups chickpeas",             cal:270, p:15, c:45, ft:4},
+          {f:"2 oz feta + olive oil",         cal:180, p:8,  c:2,  ft:15},
+          {f:"½ cup Greek yogurt tzatziki",   cal:70,  p:11, c:5,  ft:0}
+        ]},
+        {label:"Black bean quesadilla", items:[
+          {f:"2 tortillas + ¾ cup black beans",cal:340,p:15, c:56, ft:7},
+          {f:"1½ oz cheese, melted",          cal:130, p:9,  c:1,  ft:11},
+          {f:"½ cup Greek yogurt + salsa",    cal:75,  p:12, c:6,  ft:0}
+        ]}
       ]},
       {name:"Afternoon snack", time:"~4:30", items:[
         {f:"1 oz almonds",                   cal:165, p:6,  c:6,  ft:14}
       ]},
-      {name:"Dinner · lighter", time:"~7:30", items:[
-        {f:"8 oz extra-firm tofu, seared",   cal:260, p:28, c:8,  ft:14},
-        {f:"1 cup edamame, shelled",         cal:190, p:18, c:14, ft:8},
-        {f:"2 cups roasted broccoli",        cal:90,  p:6,  c:14, ft:1}
+      {name:"Dinner · lighter", time:"~7:30", variants:[
+        {label:"Tofu & edamame stir-fry", items:[
+          {f:"8 oz extra-firm tofu, seared",  cal:260, p:28, c:8,  ft:14},
+          {f:"1 cup edamame + veg",           cal:200, p:18, c:16, ft:8},
+          {f:"Soy-ginger sauce + ½ cup rice", cal:120, p:3,  c:25, ft:1}
+        ]},
+        {label:"Bean & cheese enchilada bake", items:[
+          {f:"2 tortillas + 1 cup pinto beans",cal:340,p:16, c:58, ft:6},
+          {f:"2 oz cheese + enchilada sauce", cal:180, p:12, c:8,  ft:12},
+          {f:"½ cup Greek yogurt topping",    cal:65,  p:11, c:5,  ft:0}
+        ]},
+        {label:"Halloumi & chickpea traybake", items:[
+          {f:"3 oz halloumi, pan-seared",     cal:270, p:19, c:2,  ft:20},
+          {f:"1¼ cup chickpeas, roasted",     cal:220, p:12, c:37, ft:4},
+          {f:"2 cups zucchini & peppers",     cal:70,  p:3,  c:13, ft:1}
+        ]}
       ]},
       {name:"Pre-sleep", time:"~10:30", items:[
         {f:"40 g micellar casein, in water", cal:160, p:36, c:4,  ft:1}
@@ -891,16 +1010,37 @@ function sumItems(items){
   }, {cal:0,p:0,c:0,ft:0});
 }
 
+// Which variant index is active for a given plan + meal name.
+function mealPick(planKey, mealName){
+  return (DB.mealPick && DB.mealPick[planKey] && DB.mealPick[planKey][mealName]) || 0;
+}
+function setMealPick(planKey, mealName, idx){
+  if(!DB.mealPick) DB.mealPick = {};
+  if(!DB.mealPick[planKey]) DB.mealPick[planKey] = {};
+  DB.mealPick[planKey][mealName] = idx;
+  save(DB);
+}
+// Resolve a meal to its active {label, items}: variant-aware or plain.
+function activeMeal(planKey, m){
+  if(m.variants){
+    const idx = Math.min(mealPick(planKey, m.name), m.variants.length - 1);
+    return { label:m.variants[idx].label, items:m.variants[idx].items, variants:m.variants, idx:idx };
+  }
+  return { label:null, items:m.items };
+}
+
 function renderFuel(main){
   const key   = DB.plan || "omni";
   const plan  = PLANS[key];
   const meals = plan.meals;
-  const day   = sumItems(meals.reduce(function(a,m){ return a.concat(m.items); }, []));
+
+  // day total uses each meal's ACTIVE variant
+  const allItems = meals.reduce(function(a,m){ return a.concat(activeMeal(key,m).items); }, []);
+  const day = sumItems(allItems);
 
   let h = '<div class="daytitle"><span>Fuel — Sample Day</span>' +
           '<span class="dur">2,350 cal · 185 g P</span></div>';
 
-  // plan toggle
   h += '<div class="seg">';
   Object.keys(PLANS).forEach(function(k){
     h += '<button class="segb' + (k === key ? ' on' : '') + '" data-plan="' + k + '">' +
@@ -916,7 +1056,7 @@ function renderFuel(main){
        '</div>';
 
   const gap = TARGET.cal - day.cal;
-  if(gap > 40){
+  if(gap > 60){
     h += '<div class="deloadbar" style="align-items:flex-start">' +
            '<span class="tag">Buffer</span>' +
            '<span class="txt">This day lands <b>~' + gap + ' cal under</b> target. ' +
@@ -926,18 +1066,30 @@ function renderFuel(main){
   }
 
   meals.forEach(function(m){
-    const s = sumItems(m.items);
+    const am = activeMeal(key, m);
+    const s = sumItems(am.items);
     h += '<div class="ex" style="margin-bottom:12px">' +
            '<div class="ex-head" style="cursor:default">' +
              '<div class="ex-name">' +
                '<div class="n">' + m.name + '</div>' +
-               '<div class="m">' + m.time + '</div>' +
+               '<div class="m">' + m.time + (am.label ? ' · ' + am.label : '') + '</div>' +
              '</div>' +
              '<div class="flag none">' + s.cal + ' cal · ' + s.p + ' g P</div>' +
            '</div>' +
-           '<div class="ex-body" style="display:block">' +
-             '<div class="fhead"><span>Food</span><span>Cal</span><span>P</span><span>C</span><span>F</span></div>';
-    m.items.forEach(function(i){
+           '<div class="ex-body" style="display:block">';
+
+    // variant chooser (tap to rotate options)
+    if(am.variants){
+      h += '<div class="mealseg">';
+      am.variants.forEach(function(v, vi){
+        h += '<button class="mseg' + (vi === am.idx ? ' on' : '') + '" data-meal="' +
+             m.name.replace(/"/g,'&quot;') + '" data-idx="' + vi + '">' + v.label + '</button>';
+      });
+      h += '</div>';
+    }
+
+    h += '<div class="fhead"><span>Food</span><span>Cal</span><span>P</span><span>C</span><span>F</span></div>';
+    am.items.forEach(function(i){
       h += '<div class="frow"><span>' + i.f + '</span><span>' + i.cal + '</span>' +
            '<span class="pp">' + i.p + '</span><span>' + i.c + '</span><span>' + i.ft + '</span></div>';
     });
@@ -983,6 +1135,13 @@ function renderFuel(main){
       save(DB);
       renderFuel(main);
       window.scrollTo(0,0);
+    };
+  });
+
+  main.querySelectorAll(".mseg").forEach(function(b){
+    b.onclick = function(){
+      setMealPick(key, b.getAttribute("data-meal"), parseInt(b.getAttribute("data-idx"),10));
+      renderFuel(main);
     };
   });
 }
@@ -1046,11 +1205,11 @@ function renderNotes(main){
     '</div>';
 
   document.getElementById("wipe").onclick = function(){
-    if(confirm("Erase all logged sessions? This cannot be undone.")){
-      DB = {week:1, log:{}};
+    if(confirm("Erase all logged numbers and edits on every week? This cannot be undone.")){
+      DB = {week:1, weekLog:{}, edits:{}, _v:2, plan: DB.plan};
       save(DB);
       currentDay = DAY_ORDER[0];
-      draft = {};
+      editingId = null;
       renderNav(); renderMain();
     }
   };
@@ -1063,49 +1222,12 @@ function toast(m){
   setTimeout(function(){ t.classList.remove("show"); }, 1600);
 }
 
+// Numbers now persist automatically on every keystroke (per week).
+// "Save session" is just an explicit confirmation + scroll-to-top.
 document.getElementById("saveBtn").onclick = function(){
-  const day = resolveDay(currentDay);
-  const stamp = new Date().toLocaleDateString("en-US",{month:"short",day:"numeric"});
-  let n = 0;
-
-  day.lifts.forEach(function(lift){
-    const rows = draft[lift.id] || [];
-    const any = rows.some(function(s){ return s.w !== "" || s.r !== ""; });
-    if(!any) return;
-    if(!DB.log[lift.id]) DB.log[lift.id] = [];
-    DB.log[lift.id].push({
-      date: stamp,
-      week: DB.week,
-      sets: rows.map(function(s){ return {w:s.w, r:s.r}; })
-    });
-    if(DB.log[lift.id].length > 30) DB.log[lift.id].shift();
-    n++;
-  });
-
-  if(!n){ toast("Nothing to save"); return; }
   save(DB);
-  draft = {};
-  renderMain();
-  toast("Saved · " + n + " lift" + (n>1 ? "s" : ""));
+  toast("Week " + DB.week + " saved");
   window.scrollTo({top:0, behavior:"smooth"});
-};
-
-document.getElementById("fillBtn").onclick = function(){
-  const day = resolveDay(currentDay);
-  let n = 0;
-  day.lifts.forEach(function(lift){
-    const last = lastEntry(lift.id);
-    if(!last) return;
-    const v = verdict(lift);
-    const topW = Math.max.apply(null, last.sets.map(function(s){ return Number(s.w) || 0; }));
-    const w = (v.cls === "up" && lift.inc) ? topW + lift.inc : topW;
-    if(!w) return;
-    draft[lift.id] = Array.from({length:lift.sets}, function(){ return {w:String(w), r:""}; });
-    n++;
-  });
-  if(!n){ toast("No history yet"); return; }
-  renderMain();
-  toast("Prefilled from last");
 };
 
 /* =========================================================

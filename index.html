@@ -879,7 +879,7 @@ function renderMain(){
    FUEL — sample day, ~2,350 cal / 185 g protein
    Totals are computed from the rows, never hardcoded.
    ========================================================= */
-const TARGET = {cal:2350, p:185, c:210, f:65};
+const TARGET = {cal:2350, p:185, c:255, f:65};
 
 const PLANS = {
   omni: {
@@ -887,7 +887,6 @@ const PLANS = {
     meals:[
       {name:"Breakfast · pre-workout", time:"~7:00", items:[
         {f:"3 whole eggs",                   cal:210, p:18, c:2,  ft:15},
-        {f:"3 egg whites",                   cal:50,  p:11, c:1,  ft:0},
         {f:"1 cup oats (dry, 80 g)",         cal:300, p:10, c:54, ft:5},
         {f:"1 cup blueberries",              cal:85,  p:1,  c:21, ft:0},
         {f:"Black coffee",                   cal:5,   p:0,  c:0,  ft:0}
@@ -902,19 +901,20 @@ const PLANS = {
       ]},
       {name:"Lunch · recovery meal", time:"~1:30", variants:[
         {label:"Chicken burrito bowl", items:[
-          {f:"6 oz chicken breast, grilled",  cal:280, p:53, c:0,  ft:6},
-          {f:"¾ cup rice + ½ cup black beans",cal:230, p:8,  c:44, ft:1},
-          {f:"Salsa, ¼ avocado, cilantro",    cal:90,  p:1,  c:6,  ft:7}
+          {f:"4 oz chicken breast, grilled in 1 tsp oil",cal:225,p:35,c:0,ft:9},
+          {f:"1 cup rice + ¼ cup black beans",cal:262, p:8,  c:55, ft:0},
+          {f:"Salsa, ½ avocado, cilantro",    cal:140, p:2,  c:10, ft:11}
         ]},
         {label:"Turkey sweet-potato skillet", items:[
-          {f:"6 oz 93/7 ground turkey",       cal:280, p:46, c:0,  ft:10},
-          {f:"1 medium sweet potato, cubed",  cal:130, p:2,  c:30, ft:0},
-          {f:"Peppers, onion, taco spice",    cal:60,  p:2,  c:12, ft:1}
+          {f:"4 oz 93/7 ground turkey",       cal:185, p:31, c:0,  ft:7},
+          {f:"1 large sweet potato, cubed",   cal:160, p:3,  c:37, ft:0},
+          {f:"Peppers, onion, 1 tbsp olive oil",cal:180,p:2, c:12, ft:15},
+          {f:"2 corn tortillas",              cal:105, p:3,  c:22, ft:1}
         ]},
         {label:"Chicken marinara pasta", items:[
-          {f:"6 oz chicken breast",           cal:280, p:53, c:0,  ft:6},
-          {f:"1 cup penne, cooked",           cal:200, p:7,  c:42, ft:1},
-          {f:"½ cup marinara + 2 tbsp parm",  cal:110, p:6,  c:11, ft:5}
+          {f:"4 oz chicken breast",           cal:185, p:35, c:0,  ft:4},
+          {f:"1¼ cups penne, cooked",         cal:250, p:9,  c:52, ft:1},
+          {f:"½ cup marinara + 1 tbsp olive oil",cal:190,p:2, c:10, ft:16}
         ]}
       ]},
       {name:"Afternoon snack", time:"~4:30", items:[
@@ -922,23 +922,24 @@ const PLANS = {
       ]},
       {name:"Dinner · lighter", time:"~7:30", variants:[
         {label:"Beef & broccoli stir-fry", items:[
-          {f:"6 oz flank steak, sliced",      cal:280, p:46, c:2,  ft:10},
+          {f:"4 oz flank steak, sliced",      cal:185, p:31, c:1,  ft:7},
           {f:"2 cups broccoli + peppers",     cal:90,  p:6,  c:14, ft:1},
-          {f:"Soy-garlic sauce + ½ cup rice", cal:130, p:3,  c:26, ft:1}
+          {f:"Soy-garlic sauce, 2 tsp sesame oil, 1 cup rice",cal:315,p:5,c:51,ft:9}
         ]},
         {label:"Baked salmon plate", items:[
-          {f:"6 oz salmon, baked",            cal:330, p:40, c:0,  ft:18},
-          {f:"1 cup roasted baby potatoes",   cal:120, p:3,  c:26, ft:0},
+          {f:"5 oz salmon, baked",            cal:275, p:33, c:0,  ft:15},
+          {f:"2 cups roasted baby potatoes, 1 tsp oil",cal:280,p:6,c:52,ft:5},
           {f:"1½ cups green beans, lemon",    cal:55,  p:3,  c:12, ft:0}
         ]},
         {label:"Sloppy-joe rice bowl", items:[
-          {f:"6 oz 93/7 ground beef",         cal:265, p:46, c:0,  ft:9},
+          {f:"4 oz 93/7 ground beef",         cal:175, p:31, c:0,  ft:6},
           {f:"Sloppy-joe sauce",              cal:70,  p:1,  c:15, ft:1},
-          {f:"½ cup rice + ½ cup corn",       cal:170, p:4,  c:35, ft:1}
+          {f:"1 cup rice + ½ cup corn",       cal:275, p:7,  c:60, ft:1},
+          {f:"¼ cup shredded cheddar",        cal:110, p:7,  c:1,  ft:9}
         ]}
       ]},
       {name:"Pre-sleep", time:"~10:30", items:[
-        {f:"40 g micellar casein, in water", cal:160, p:36, c:4,  ft:1}
+        {f:"1 scoop (33 g) micellar casein, in water",cal:120,p:24,c:3,ft:1}
       ]}
     ]
   },

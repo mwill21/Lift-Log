@@ -246,9 +246,9 @@
 
   /* ---------- floating rest timer ---------- */
   .timer{
-    position:fixed;right:12px;z-index:35;
-    bottom:calc(env(safe-area-inset-bottom) + 74px);
-    display:none;                 /* shown only on workout tabs via JS */
+    position:fixed;left:0;top:0;z-index:35;  /* placed by JS; drag to move */
+    display:none;                 /* shown on workout tabs after first exercise tap */
+    touch-action:none;user-select:none;-webkit-user-select:none;
     align-items:stretch;
     border-radius:12px;overflow:hidden;
     box-shadow:0 4px 16px rgba(13,17,23,.22);
@@ -280,6 +280,7 @@
   /* pulse the ring when a common rest interval elapses */
   @keyframes tflash{0%,100%{background:var(--ink)}50%{background:#1d3a2c}}
   .timer.flash{animation:tflash .5s ease 3}
+  .timer.dragging{opacity:.85;box-shadow:0 8px 24px rgba(13,17,23,.35)}
 
   /* ---------- fuel tab ---------- */
   .seg{
@@ -699,9 +700,10 @@ function buildCard(lift, day){
     '<div class="flag ' + v.cls + '">' + v.text + '</div>' +
     '<button class="editbtn" aria-label="Edit exercise">✎</button>' +
     '<div class="chev">▶</div>';
-  head.querySelector(".ex-name").onclick = function(){ card.classList.toggle("open"); };
-  head.querySelector(".chev").onclick = function(){ card.classList.toggle("open"); };
-  head.querySelector(".slot") && (head.querySelector(".slot").onclick = function(){ card.classList.toggle("open"); });
+  function toggleCard(){ card.classList.toggle("open"); unlockTimer(); }
+  head.querySelector(".ex-name").onclick = toggleCard;
+  head.querySelector(".chev").onclick = toggleCard;
+  head.querySelector(".slot") && (head.querySelector(".slot").onclick = toggleCard);
   head.querySelector(".editbtn").onclick = function(e){
     e.stopPropagation();
     editingId = (editingId === lift.id) ? null : lift.id;
@@ -1358,11 +1360,85 @@ function timerReset(){
   paintTimer();
 }
 
+// Hidden until the first exercise is opened each time the app loads.
+var timerUnlocked = false;
+function unlockTimer(){
+  if(timerUnlocked) return;
+  timerUnlocked = true;
+  updateTimerVisibility();
+}
+
 // show the timer only on the five workout tabs
 function updateTimerVisibility(){
-  var show = (currentDay !== "notes" && currentDay !== "fuel");
-  document.getElementById("timer").classList.toggle("on", show);
+  var show = timerUnlocked && (currentDay !== "notes" && currentDay !== "fuel");
+  var el = document.getElementById("timer");
+  el.classList.toggle("on", show);
+  if(show) placeTimer();
 }
+
+/* ---- position: default top-right under the header; drag to move ---- */
+var TIMER_POS_KEY = "liftlog.timerpos";
+var timerPos = null;  // {x, y} of the top-left corner, in px
+try{ timerPos = JSON.parse(localStorage.getItem(TIMER_POS_KEY)); }catch(e){ timerPos = null; }
+
+function clampTimer(x, y){
+  var el = document.getElementById("timer");
+  var maxX = window.innerWidth  - el.offsetWidth  - 4;
+  var maxY = window.innerHeight - el.offsetHeight - 4;
+  return { x:Math.max(4, Math.min(x, maxX)), y:Math.max(4, Math.min(y, maxY)) };
+}
+function placeTimer(){
+  var el = document.getElementById("timer");
+  var p = timerPos;
+  if(!p){
+    var hb = document.querySelector("header").getBoundingClientRect().bottom;
+    p = { x:window.innerWidth - el.offsetWidth - 12, y:hb + 8 };
+  }
+  p = clampTimer(p.x, p.y);
+  el.style.left = p.x + "px";
+  el.style.top  = p.y + "px";
+}
+window.addEventListener("resize", function(){
+  if(document.getElementById("timer").classList.contains("on")) placeTimer();
+});
+
+// A press that moves more than a few px is a drag; otherwise it's a tap
+// and the buttons' click handlers run as before.
+(function(){
+  var el = document.getElementById("timer");
+  var drag = null, justDragged = false;
+  el.addEventListener("pointerdown", function(e){
+    justDragged = false;
+    var r = el.getBoundingClientRect();
+    drag = { id:e.pointerId, sx:e.clientX, sy:e.clientY, ox:r.left, oy:r.top, moved:false };
+  });
+  el.addEventListener("pointermove", function(e){
+    if(!drag || e.pointerId !== drag.id) return;
+    var dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
+    if(!drag.moved && Math.abs(dx) + Math.abs(dy) < 8) return;
+    if(!drag.moved){ drag.moved = true; el.setPointerCapture(e.pointerId); el.classList.add("dragging"); }
+    var p = clampTimer(drag.ox + dx, drag.oy + dy);
+    el.style.left = p.x + "px";
+    el.style.top  = p.y + "px";
+  });
+  function end(e){
+    if(!drag || e.pointerId !== drag.id) return;
+    if(drag.moved){
+      var r = el.getBoundingClientRect();
+      timerPos = { x:r.left, y:r.top };
+      try{ localStorage.setItem(TIMER_POS_KEY, JSON.stringify(timerPos)); }catch(err){}
+      el.classList.remove("dragging");
+      justDragged = true;   // cleared on the next press
+    }
+    drag = null;
+  }
+  el.addEventListener("pointerup", end);
+  el.addEventListener("pointercancel", end);
+  // swallow the click that follows a drag so it doesn't start/reset the timer
+  el.addEventListener("click", function(e){
+    if(justDragged){ e.stopPropagation(); e.preventDefault(); }
+  }, true);
+})();
 
 document.getElementById("timerFace").onclick  = timerStartPause;
 document.getElementById("timerReset").onclick = timerReset;

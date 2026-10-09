@@ -513,18 +513,35 @@ function savedRows(week, liftId){
   return (wl && wl[liftId]) || null;
 }
 
+// Sets actually prescribed for a lift on a given week (edits + deload applied).
+function setsOn(week, dayKey, liftId){
+  const l = resolveDay(dayKey, week).lifts.filter(function(x){ return x.id === liftId; })[0];
+  if(!l) return 0;
+  return week === DELOAD_WEEK ? Math.ceil(l.sets / 2) : l.sets;
+}
+
 // Most recent PRIOR week (before `week`) with logged rows, skipping deload.
-function priorEntry(week, liftId){
+// Rows beyond that week's set count are hidden leftovers and are ignored.
+function priorEntry(week, dayKey, liftId){
   for(let w = week - 1; w >= 1; w--){
     if(w === DELOAD_WEEK) continue;
-    const rows = savedRows(w, liftId);
+    const all = savedRows(w, liftId);
+    const rows = all && all.slice(0, setsOn(w, dayKey, liftId));
     if(rows && rows.some(function(s){ return s.w !== "" || s.r !== ""; })) return {week:w, rows:rows};
   }
   return null;
 }
 
-function verdict(lift, week){
-  const prev = priorEntry(week, lift.id);
+function verdict(lift, week, dayKey){
+  const prev = priorEntry(week, dayKey, lift.id);
+  if(week === DELOAD_WEEK){
+    const ws = prev ? prev.rows.map(s => Number(s.w) || 0) : [];
+    const top = ws.length ? Math.max(...ws) : 0;
+    return {
+      cls:"hold", text:"Deload",
+      cue: top ? "Use ~" + Math.round(top * 0.6 / 5) * 5 + " lb (60% of " + top + ")." : "Use ~60% of last week's load."
+    };
+  }
   if(!prev) return {cls:"none", text:"No data", cue:"Log a session to get a call."};
   const sets = prev.rows.filter(s => s.r !== "" && s.r != null);
   if(!sets.length) return {cls:"none", text:"No data", cue:"Log a session to get a call."};
@@ -646,18 +663,26 @@ function renderWeek(){
 document.getElementById("wkPrev").onclick = function(){ setWeek(DB.week - 1); };
 document.getElementById("wkNext").onclick = function(){ setWeek(DB.week + 1); };
 
+// Escape text for safe insertion into innerHTML.
+function esc(s){
+  return String(s).replace(/[&<>"']/g, function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+  });
+}
+
 function buildCard(lift, day){
   const wk = DB.week;
-  const v = verdict(lift, wk);
-  const prev = priorEntry(wk, lift.id);
+  const v = verdict(lift, wk, currentDay);
+  const prev = priorEntry(wk, currentDay, lift.id);
   const edited = isEdited(wk, currentDay, lift.id);
+  const nSets = setsOn(wk, currentDay, lift.id);
 
   // Ensure a saved-rows array exists for this week/lift, sized to sets.
   const wl = weekLog(wk);
   if(!wl[lift.id]) wl[lift.id] = [];
-  // grow/shrink to match current set count (edits can change it)
-  while(wl[lift.id].length < lift.sets) wl[lift.id].push({w:"", r:""});
-  if(wl[lift.id].length > lift.sets) wl[lift.id].length = lift.sets;
+  // grow only — if sets are reduced, extra rows are hidden, not deleted,
+  // so raising the count again brings the logged numbers back.
+  while(wl[lift.id].length < nSets) wl[lift.id].push({w:"", r:""});
   const rows = wl[lift.id];
 
   const card = document.createElement("div");
@@ -668,8 +693,8 @@ function buildCard(lift, day){
   head.innerHTML =
     (lift.slot ? '<div class="slot">' + lift.slot + '</div>' : '') +
     '<div class="ex-name">' +
-      '<div class="n">' + lift.name + (edited ? ' <span class="editdot" title="edited this week">•</span>' : '') + '</div>' +
-      '<div class="m">' + lift.sets + ' × ' + lift.lo + '–' + lift.hi + ' · ' + lift.rir + ' RIR · ' + lift.rest + '</div>' +
+      '<div class="n">' + esc(lift.name) + (edited ? ' <span class="editdot" title="edited this week">•</span>' : '') + '</div>' +
+      '<div class="m">' + nSets + ' × ' + lift.lo + '–' + lift.hi + ' · ' + lift.rir + ' RIR · ' + esc(lift.rest) + '</div>' +
     '</div>' +
     '<div class="flag ' + v.cls + '">' + v.text + '</div>' +
     '<button class="editbtn" aria-label="Edit exercise">✎</button>' +
@@ -692,7 +717,7 @@ function buildCard(lift, day){
     ed.innerHTML =
       '<div class="ednote">Editing Week ' + wk + ' only</div>' +
       '<div class="edrow"><label>Exercise</label>' +
-        '<input type="text" id="ed_name" value="' + lift.name.replace(/"/g,'&quot;') + '"></div>' +
+        '<input type="text" id="ed_name" value="' + esc(lift.name) + '"></div>' +
       '<div class="edgrid">' +
         '<div><label>Sets</label><input type="number" inputmode="numeric" id="ed_sets" value="' + lift.sets + '" min="1" max="10"></div>' +
         '<div><label>Reps low</label><input type="number" inputmode="numeric" id="ed_lo" value="' + lift.lo + '" min="1"></div>' +
@@ -700,7 +725,7 @@ function buildCard(lift, day){
         '<div><label>RIR</label><input type="number" inputmode="numeric" id="ed_rir" value="' + lift.rir + '" min="0" max="5"></div>' +
       '</div>' +
       '<div class="edrow"><label>Rest</label>' +
-        '<input type="text" id="ed_rest" value="' + lift.rest.replace(/"/g,'&quot;') + '" placeholder="e.g. 90 s"></div>' +
+        '<input type="text" id="ed_rest" value="' + esc(lift.rest) + '" placeholder="e.g. 90 s"></div>' +
       '<div class="edbtns">' +
         '<button class="edsave" id="ed_save">Save</button>' +
         '<button class="edcancel" id="ed_cancel">Cancel</button>' +
@@ -741,7 +766,7 @@ function buildCard(lift, day){
   // prior-week name, for the Last column header line
   const prevName = prev ? liftNameOn(prev.week, currentDay, lift.id) : null;
 
-  for(let i=0;i<lift.sets;i++){
+  for(let i=0;i<nSets;i++){
     const row = document.createElement("div");
     row.className = "setrow";
 
@@ -762,7 +787,7 @@ function buildCard(lift, day){
     const p = document.createElement("div");
     p.className = "prev";
     const ls = prev && prev.rows[i];
-    p.innerHTML = (ls && ls.w !== "" && ls.r !== "") ? '<b>' + ls.w + '</b>×' + ls.r : '—';
+    p.innerHTML = (ls && ls.w !== "" && ls.r !== "") ? '<b>' + esc(ls.w) + '</b>×' + esc(ls.r) : '—';
 
     row.appendChild(no); row.appendChild(wIn); row.appendChild(rIn); row.appendChild(p);
     body.appendChild(row);
@@ -773,9 +798,9 @@ function buildCard(lift, day){
     const a = document.createElement("div");
     a.className = "alt";
     a.innerHTML =
-      '<b>Alternate:</b> your set → ' + lift.rest + ' → ' +
-      (partner ? partner.slot + ' ' + partner.name : 'partner') +
-      ' → ' + lift.rest + ' → back here.<br>' +
+      '<b>Alternate:</b> your set → ' + esc(lift.rest) + ' → ' +
+      (partner ? partner.slot + ' ' + esc(partner.name) : 'partner') +
+      ' → ' + esc(lift.rest) + ' → back here.<br>' +
       '<b>Station taken:</b> ' + lift.alt;
     body.appendChild(a);
   }
@@ -786,7 +811,7 @@ function buildCard(lift, day){
     ? ("Last: Week " + prev.week + (prevName && prevName !== lift.name ? " · " + prevName : ""))
     : "No prior week";
   l.innerHTML =
-    '<span>' + prevLabel + '</span>' +
+    '<span>' + esc(prevLabel) + '</span>' +
     '<span class="cue ' + (v.cls === "up" ? "up" : "") + '">' + v.cue + '</span>';
   body.appendChild(l);
 
@@ -816,7 +841,7 @@ function renderMain(){
     d.className = "deloadbar";
     d.innerHTML =
       '<span class="tag">Deload</span>' +
-      '<span class="txt">Run <b>half the sets</b> at <b>60% of last week\'s load</b>. ' +
+      '<span class="txt">Sets are <b>halved</b> below. Use <b>60% of last week\'s load</b> — each card shows the number. ' +
       'Log it as normal — the progression call ignores deload weeks.</span>';
     main.appendChild(d);
   }
@@ -990,7 +1015,7 @@ const SWAPS = {
   veg:[
     ["Tofu",           "Tempeh (~31 g P / 8 oz) or seitan (~42 g P / 4 oz)"],
     ["Lentils",        "Black beans, chickpeas, or 1 cup Greek yogurt"],
-    ["Cottage cheese", "Skyr, ricotta, or 2 scoops whey"],
+    ["Greek yogurt",   "Skyr, cottage cheese, or 1 scoop whey"],
     ["Edamame",        "Extra tofu, or 1 oz nuts + more beans"],
     ["Casein",         "1 cup cottage cheese — the whole-food version"]
   ]
@@ -999,8 +1024,8 @@ const SWAPS = {
 const PLAN_NOTES = {
   omni:[],
   veg:[
-    ["Why this works", "<b>Eggs and dairy do the heavy lifting</b> — cottage cheese, Greek yogurt, eggs, and casein supply <b>116 of the 204 g</b>. Complete proteins with real leucine. Strip them out and this plan collapses.<br><br><b>Soy is the one plant protein that is actually good.</b> Tofu and edamame are complete and reasonably leucine-rich — soy is the exception among plants, not the rule. Beans and rice alone would need far more food volume for the same effect."],
-    ["Two things to watch", "<b>Fiber is high</b> — likely north of 50 g/day between lentils, edamame, broccoli, and oats. Healthy, but it is a lot of volume. Ramp up over a week rather than switching cold.<br><br><b>Creatine matters more now.</b> Creatine comes almost entirely from meat, so vegetarians carry lower muscle stores — and tend to see <b>larger</b> gains from supplementing. The 5 g/day was already in the plan; it is doing more work than before."]
+    ["Why this works", "<b>Eggs and dairy do the heavy lifting</b> — eggs, Greek yogurt, cheese, and casein supply <b>well over half</b> of the day's protein. Complete proteins with real leucine. Strip them out and this plan collapses.<br><br><b>Soy is the one plant protein that is actually good.</b> Tofu and edamame are complete and reasonably leucine-rich — soy is the exception among plants, not the rule. Beans and rice alone would need far more food volume for the same effect."],
+    ["Two things to watch", "<b>Fiber is high</b> — likely north of 50 g/day between lentils, beans, chickpeas, edamame, and oats. Healthy, but it is a lot of volume. Ramp up over a week rather than switching cold.<br><br><b>Creatine matters more now.</b> Creatine comes almost entirely from meat, so vegetarians carry lower muscle stores — and tend to see <b>larger</b> gains from supplementing. The 5 g/day was already in the plan; it is doing more work than before."]
   ]
 };
 
@@ -1159,7 +1184,7 @@ function renderNotes(main){
     '<div class="note">' +
       '<h3>How supersets run</h3>' +
       '<p>A1 set → short rest → A2 set → short rest → back to A1. Never stand still. Each muscle still gets ~2.5 min of real recovery, because the partner set <i>is</i> its rest.</p>' +
-      '<p><b>Compounds are not supersetted.</b> Squat, bench, RDL, pull-up, and OHP keep full straight-set rest. The time savings come from accessories only.</p>' +
+      '<p><b>Leg compounds are not supersetted.</b> Squat, leg press, RDL, and hack squat keep full straight-set rest. On upper days the heavy lifts run as <b>opposing push / pull pairs</b> (bench + row, pull-up + OHP) with 90 s between — each muscle still gets ~3 min before its next set.</p>' +
       '<p>Claim both stations before you start. If one gets taken mid-block, use the fallback on the card rather than breaking the pairing.</p>' +
     '</div>' +
 
@@ -1199,10 +1224,53 @@ function renderNotes(main){
     '</div>' +
 
     '<div class="note">' +
+      '<h3>Backup</h3>' +
+      '<p style="margin-bottom:12px">Your log lives only in this browser. Export a copy now and then — clearing Safari data or switching phones erases it.</p>' +
+      '<div class="edbtns">' +
+        '<button class="edsave" id="exportBtn">Export backup</button>' +
+        '<button class="edcancel" id="importBtn">Import</button>' +
+      '</div>' +
+      '<input type="file" id="importFile" accept="application/json,.json" style="display:none">' +
+    '</div>' +
+
+    '<div class="note">' +
       '<h3>Reset</h3>' +
       '<p style="margin-bottom:12px">Wipes every logged session on this device. No undo.</p>' +
       '<button class="danger" id="wipe">Erase all data</button>' +
     '</div>';
+
+  document.getElementById("exportBtn").onclick = function(){
+    const blob = new Blob([JSON.stringify(DB, null, 2)], {type:"application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "liftlog-backup-" + new Date().toISOString().slice(0,10) + ".json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+  };
+
+  const fileIn = document.getElementById("importFile");
+  document.getElementById("importBtn").onclick = function(){ fileIn.value = ""; fileIn.click(); };
+  fileIn.onchange = function(){
+    const f = fileIn.files && fileIn.files[0];
+    if(!f) return;
+    const rd = new FileReader();
+    rd.onload = function(){
+      let data;
+      try{ data = JSON.parse(rd.result); }catch(e){ alert("That file is not a Lift Log backup."); return; }
+      if(!data || typeof data !== "object" || !(data.weekLog || data.log)){
+        alert("That file is not a Lift Log backup."); return;
+      }
+      if(!confirm("Replace everything on this device with the backup? This cannot be undone.")) return;
+      if(!data.week) data.week = 1;
+      migrate(data);
+      DB = data;
+      save(DB);
+      editingId = null;
+      renderNav(); renderMain();
+      toast("Backup restored");
+    };
+    rd.readAsText(f);
+  };
 
   document.getElementById("wipe").onclick = function(){
     if(confirm("Erase all logged numbers and edits on every week? This cannot be undone.")){

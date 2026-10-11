@@ -176,6 +176,12 @@
   .edsave{background:var(--accent);color:#fff;flex:1}
   .edcancel{background:var(--panel);border:1px solid var(--line)!important;color:var(--ink-dim)}
   .edreset{background:transparent;border:1px solid #e5b4b4!important;color:#b3261e;flex-basis:100%}
+  .addex{
+    display:block;width:100%;margin:4px 0 12px;padding:13px;
+    background:transparent;border:1.5px dashed var(--line);border-radius:12px;
+    color:var(--accent);font:inherit;font-weight:700;cursor:pointer;
+  }
+  .addex-card{margin-bottom:12px}
   .ex-body{display:none;border-top:1px solid var(--line);padding:12px 14px 14px}
   .block .ex-body{border-top:1px solid rgba(29,78,216,.15)}
   .ex.open .ex-body{display:block}
@@ -476,6 +482,8 @@ let currentDay = DAY_ORDER[0];
    PER-WEEK STORAGE MODEL
    DB.weekLog[week][liftId] = [{w,r}, ...]   saved box contents
    DB.edits[week][dayKey][liftId] = {name,sets,lo,hi,rir,rest}
+   DB.custom[dayKey] = [{id,name,sets,lo,hi,rir,rest,inc,from,until}]
+     exercises the user added; shown on weeks from..until (until null = open)
    Both keyed by week first, so every week is an independent copy.
    ----------------------------------------------------------- */
 
@@ -580,18 +588,53 @@ function isEdited(week, dayKey, liftId){
   return !!(e && Object.keys(e).length);
 }
 
+/* ---- user-added exercises ---- */
+function customAll(dayKey){
+  return (DB.custom && DB.custom[dayKey]) || [];
+}
+function customOn(dayKey, week){
+  return customAll(dayKey).filter(function(l){
+    return l.from <= week && (l.until == null || week <= l.until);
+  });
+}
+// Unedited definition of a lift: built-in program or user-added.
+function baseLift(dayKey, liftId){
+  return PROGRAM[dayKey].lifts.concat(customAll(dayKey))
+    .filter(function(l){ return l.id === liftId; })[0] || null;
+}
+function addCustom(dayKey, week, lift){
+  if(!DB.custom) DB.custom = {};
+  if(!DB.custom[dayKey]) DB.custom[dayKey] = [];
+  lift.id = "c_" + Date.now().toString(36);
+  lift.group = null;
+  lift.from = week;
+  lift.until = null;
+  DB.custom[dayKey].push(lift);
+  save(DB);
+}
+// Remove from `week` onward. Earlier weeks keep it (and their logged sets);
+// if it was added this same week it is deleted outright.
+function removeCustom(dayKey, week, liftId){
+  const list = customAll(dayKey);
+  const l = list.filter(function(x){ return x.id === liftId; })[0];
+  if(!l) return;
+  if(l.from >= week) list.splice(list.indexOf(l), 1);
+  else l.until = week - 1;
+  save(DB);
+}
+
 // Display name a lift had on a specific week (edited name or base).
 function liftNameOn(week, dayKey, liftId){
   const e = liftEdit(week, dayKey, liftId);
   if(e && e.name) return e.name;
-  const base = PROGRAM[dayKey].lifts.filter(function(l){return l.id===liftId;})[0];
+  const base = baseLift(dayKey, liftId);
   return base ? base.name : liftId;
 }
 
 function resolveDay(dayKey, week){
   const base = PROGRAM[dayKey];
   const merged = { label:base.label, title:base.title, dur:base.dur, blocks:base.blocks };
-  merged.lifts = base.lifts.map(function(lift){
+  merged.lifts = base.lifts.concat(customOn(dayKey, week)).map(function(lift){
     const e = liftEdit(week, dayKey, lift.id);
     if(!e) return lift;
     const out = {};
@@ -609,7 +652,7 @@ function saveEdit(week, dayKey, liftId, patch){
   const cur = DB.edits[week][dayKey][liftId] || {};
   EDITABLE.forEach(function(k){
     if(patch[k] === undefined) return;
-    const orig = PROGRAM[dayKey].lifts.filter(function(l){return l.id===liftId;})[0][k];
+    const orig = baseLift(dayKey, liftId)[k];
     if(String(patch[k]) === String(orig)) delete cur[k];
     else cur[k] = patch[k];
   });
@@ -630,7 +673,7 @@ function renderNav(){
     const b = document.createElement("button");
     b.textContent = PROGRAM[d].label;
     if(d === currentDay) b.className = "on";
-    b.onclick = function(){ currentDay=d; editingId=null; renderNav(); renderMain(); window.scrollTo(0,0); };
+    b.onclick = function(){ currentDay=d; editingId=null; addingEx=false; renderNav(); renderMain(); window.scrollTo(0,0); };
     nav.appendChild(b);
   });
   [["fuel","Fuel"],["notes","Plan"]].forEach(function(pair){
@@ -732,8 +775,18 @@ function buildCard(lift, day){
         '<button class="edsave" id="ed_save">Save</button>' +
         '<button class="edcancel" id="ed_cancel">Cancel</button>' +
         (edited ? '<button class="edreset" id="ed_reset">Reset to original</button>' : '') +
+        (lift.from ? '<button class="edreset" id="ed_remove">Remove exercise</button>' : '') +
       '</div>';
     card.appendChild(ed);
+    if(lift.from) ed.querySelector("#ed_remove").onclick = function(){
+      const msg = lift.from >= wk
+        ? "Remove " + lift.name + "?"
+        : "Remove " + lift.name + " from Week " + wk + " on? Earlier weeks keep it and their logged sets.";
+      if(!confirm(msg)) return;
+      removeCustom(currentDay, wk, lift.id);
+      editingId = null;
+      renderMain();
+    };
 
     ed.querySelector("#ed_save").onclick = function(){
       const patch = {
@@ -875,6 +928,69 @@ function renderMain(){
     }
     main.appendChild(wrap);
   }
+
+  main.appendChild(addingEx ? buildAddForm() : buildAddButton());
+}
+
+/* ---- "+ Add exercise" at the bottom of each workout day ---- */
+let addingEx = false;
+
+function buildAddButton(){
+  const b = document.createElement("button");
+  b.className = "addex";
+  b.textContent = "+ Add exercise";
+  b.onclick = function(){ addingEx = true; editingId = null; renderMain(); };
+  return b;
+}
+
+function buildAddForm(){
+  const wk = DB.week;
+  const card = document.createElement("div");
+  card.className = "ex open addex-card";
+  const ed = document.createElement("div");
+  ed.className = "editor";
+  ed.innerHTML =
+    '<div class="ednote">New exercise · ' + esc(PROGRAM[currentDay].label) + ' · Week ' + wk + ' onward</div>' +
+    '<div class="edrow"><label>Exercise</label>' +
+      '<input type="text" id="ad_name" placeholder="e.g. Cable Crunch"></div>' +
+    '<div class="edgrid">' +
+      '<div><label>Sets</label><input type="number" inputmode="numeric" id="ad_sets" value="3" min="1" max="10"></div>' +
+      '<div><label>Reps low</label><input type="number" inputmode="numeric" id="ad_lo" value="8" min="1"></div>' +
+      '<div><label>Reps high</label><input type="number" inputmode="numeric" id="ad_hi" value="12" min="1"></div>' +
+      '<div><label>RIR</label><input type="number" inputmode="numeric" id="ad_rir" value="1" min="0" max="5"></div>' +
+    '</div>' +
+    '<div class="edgrid">' +
+      '<div style="grid-column:span 2"><label>Rest</label><input type="text" id="ad_rest" value="90 s"></div>' +
+      '<div style="grid-column:span 2"><label>Add per step (lb)</label><input type="number" inputmode="decimal" id="ad_inc" value="5" min="0" step="2.5"></div>' +
+    '</div>' +
+    '<div class="edbtns">' +
+      '<button class="edsave" id="ad_save">Add</button>' +
+      '<button class="edcancel" id="ad_cancel">Cancel</button>' +
+    '</div>';
+  card.appendChild(ed);
+
+  function num(id, d){ const n = parseFloat(ed.querySelector(id).value); return isNaN(n) ? d : n; }
+  ed.querySelector("#ad_save").onclick = function(){
+    const name = ed.querySelector("#ad_name").value.trim();
+    if(!name){ ed.querySelector("#ad_name").focus(); toast("Give it a name"); return; }
+    const lift = {
+      name: name,
+      sets: Math.max(1, Math.min(10, Math.round(num("#ad_sets", 3)))),
+      lo:   Math.max(1, Math.round(num("#ad_lo", 8))),
+      hi:   Math.max(1, Math.round(num("#ad_hi", 12))),
+      rir:  Math.max(0, Math.min(5, Math.round(num("#ad_rir", 1)))),
+      rest: ed.querySelector("#ad_rest").value.trim() || "90 s",
+      inc:  Math.max(0, num("#ad_inc", 5))
+    };
+    if(lift.hi < lift.lo){ const t = lift.lo; lift.lo = lift.hi; lift.hi = t; }
+    addCustom(currentDay, wk, lift);
+    addingEx = false;
+    renderMain();
+    toast(name + " added");
+  };
+  ed.querySelector("#ad_cancel").onclick = function(){ addingEx = false; renderMain(); };
+  setTimeout(function(){ ed.querySelector("#ad_name").focus(); }, 0);
+  return card;
 }
 
 /* =========================================================
@@ -1276,7 +1392,7 @@ function renderNotes(main){
   };
 
   document.getElementById("wipe").onclick = function(){
-    if(confirm("Erase all logged numbers and edits on every week? This cannot be undone.")){
+    if(confirm("Erase all logged numbers, edits and added exercises on every week? This cannot be undone.")){
       DB = {week:1, weekLog:{}, edits:{}, _v:2, plan: DB.plan};
       save(DB);
       currentDay = DAY_ORDER[0];

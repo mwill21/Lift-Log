@@ -1376,31 +1376,47 @@ function updateTimerVisibility(){
   if(show) placeTimer();
 }
 
-/* ---- position: default top-right under the header; drag to move ---- */
+/* ---- position: default top-right under the header; drag to move ----
+   Positions are kept relative to the VISIBLE area (visualViewport), so when
+   the iPhone keyboard opens and Safari scrolls the page, the timer is
+   shifted to stay in the same spot on screen instead of scrolling away. */
 var TIMER_POS_KEY = "liftlog.timerpos";
-var timerPos = null;  // {x, y} of the top-left corner, in px
+var timerPos = null;  // saved {x, y} of the top-left corner, in px on screen
+var timerCur = null;  // where it is drawn right now, same coordinates
 try{ timerPos = JSON.parse(localStorage.getItem(TIMER_POS_KEY)); }catch(e){ timerPos = null; }
 
+function viewport(){
+  var v = window.visualViewport;
+  return v ? { x:v.offsetLeft, y:v.offsetTop, w:v.width, h:v.height }
+           : { x:0, y:0, w:window.innerWidth, h:window.innerHeight };
+}
 function clampTimer(x, y){
-  var el = document.getElementById("timer");
-  var maxX = window.innerWidth  - el.offsetWidth  - 4;
-  var maxY = window.innerHeight - el.offsetHeight - 4;
+  var el = document.getElementById("timer"), v = viewport();
+  var maxX = v.w - el.offsetWidth  - 4;
+  var maxY = v.h - el.offsetHeight - 4;
   return { x:Math.max(4, Math.min(x, maxX)), y:Math.max(4, Math.min(y, maxY)) };
+}
+function drawTimer(p){
+  var el = document.getElementById("timer"), v = viewport();
+  timerCur = p;
+  el.style.left = (p.x + v.x) + "px";
+  el.style.top  = (p.y + v.y) + "px";
 }
 function placeTimer(){
   var el = document.getElementById("timer");
-  var p = timerPos;
-  if(!p){
-    var hb = document.querySelector("header").getBoundingClientRect().bottom;
-    p = { x:window.innerWidth - el.offsetWidth - 12, y:hb + 8 };
-  }
-  p = clampTimer(p.x, p.y);
-  el.style.left = p.x + "px";
-  el.style.top  = p.y + "px";
+  var p = timerPos ||
+          { x:viewport().w - el.offsetWidth - 12,
+            y:document.querySelector("header").offsetHeight + 8 };
+  drawTimer(clampTimer(p.x, p.y));
 }
-window.addEventListener("resize", function(){
+function replaceTimerIfShown(){
   if(document.getElementById("timer").classList.contains("on")) placeTimer();
-});
+}
+window.addEventListener("resize", replaceTimerIfShown);
+if(window.visualViewport){
+  window.visualViewport.addEventListener("resize", replaceTimerIfShown);
+  window.visualViewport.addEventListener("scroll", replaceTimerIfShown);
+}
 
 // A press that moves more than a few px is a drag; otherwise it's a tap
 // and the buttons' click handlers run as before.
@@ -1409,23 +1425,20 @@ window.addEventListener("resize", function(){
   var drag = null, justDragged = false;
   el.addEventListener("pointerdown", function(e){
     justDragged = false;
-    var r = el.getBoundingClientRect();
-    drag = { id:e.pointerId, sx:e.clientX, sy:e.clientY, ox:r.left, oy:r.top, moved:false };
+    if(!timerCur) placeTimer();
+    drag = { id:e.pointerId, sx:e.clientX, sy:e.clientY, ox:timerCur.x, oy:timerCur.y, moved:false };
   });
   el.addEventListener("pointermove", function(e){
     if(!drag || e.pointerId !== drag.id) return;
     var dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
     if(!drag.moved && Math.abs(dx) + Math.abs(dy) < 8) return;
     if(!drag.moved){ drag.moved = true; el.setPointerCapture(e.pointerId); el.classList.add("dragging"); }
-    var p = clampTimer(drag.ox + dx, drag.oy + dy);
-    el.style.left = p.x + "px";
-    el.style.top  = p.y + "px";
+    drawTimer(clampTimer(drag.ox + dx, drag.oy + dy));
   });
   function end(e){
     if(!drag || e.pointerId !== drag.id) return;
     if(drag.moved){
-      var r = el.getBoundingClientRect();
-      timerPos = { x:r.left, y:r.top };
+      timerPos = { x:timerCur.x, y:timerCur.y };
       try{ localStorage.setItem(TIMER_POS_KEY, JSON.stringify(timerPos)); }catch(err){}
       el.classList.remove("dragging");
       justDragged = true;   // cleared on the next press

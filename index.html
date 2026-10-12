@@ -277,15 +277,14 @@
   }
   .timer.running .timer-time{color:#facc15}   /* bright yellow: readable on the dark face */
   .timer.running .timer-hint{color:#facc15}
+  .timer.running.over .timer-time,
+  .timer.running.over .timer-hint{color:#c4b5fd}   /* light purple after 60 s */
   .timer-reset{
     background:rgba(255,255,255,.08);border:none;cursor:pointer;
     border-left:1px solid rgba(255,255,255,.14);
     color:#8b95a3;font-size:17px;padding:0 13px;
   }
   .timer-reset:active{background:rgba(255,255,255,.16);color:#fff}
-  /* pulse the ring when a common rest interval elapses */
-  @keyframes tflash{0%,100%{background:var(--ink)}50%{background:#4a3a05}}
-  .timer.flash{animation:tflash .5s ease 3}
   .timer.dragging{opacity:.85;box-shadow:0 8px 24px rgba(13,17,23,.35)}
 
   /* ---------- fuel tab ---------- */
@@ -1425,7 +1424,6 @@ var timerRunning = false;
 var timerBase = 0;        // ms already accumulated before current run
 var timerStart = 0;       // Date.now() when the current run began
 var timerTick = null;
-var timerFlashedAt = -1;  // last rest-interval (s) we flashed on
 
 function timerElapsedMs(){
   return timerBase + (timerRunning ? (Date.now() - timerStart) : 0);
@@ -1445,13 +1443,8 @@ function paintTimer(){
   var secs = Math.floor(timerElapsedMs()/1000);
   t.textContent = fmtTime(timerElapsedMs());
   el.classList.toggle("running", timerRunning);
+  el.classList.toggle("over", secs >= 60);
   h.textContent = timerRunning ? "running · tap to pause" : (secs > 0 ? "paused · tap to resume" : "tap to start");
-
-  // subtle flash as each common rest interval passes (45 / 90 s)
-  if(timerRunning && (secs === 45 || secs === 90) && secs !== timerFlashedAt){
-    timerFlashedAt = secs;
-    el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
-  }
 }
 
 function timerStartPause(){
@@ -1462,7 +1455,6 @@ function timerStartPause(){
   } else {
     timerStart = Date.now();
     timerRunning = true;
-    timerFlashedAt = -1;
     timerTick = setInterval(paintTimer, 200);
   }
   paintTimer();
@@ -1470,9 +1462,8 @@ function timerStartPause(){
 
 function timerReset(){
   timerRunning = false;
-  timerBase = 0; timerStart = 0; timerFlashedAt = -1;
+  timerBase = 0; timerStart = 0;
   clearInterval(timerTick); timerTick = null;
-  document.getElementById("timer").classList.remove("flash");
   paintTimer();
 }
 

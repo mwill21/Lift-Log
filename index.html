@@ -202,6 +202,16 @@
   input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
   input[type=number]:focus{outline:none;border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px rgba(194,65,12,.12)}
   input[type=number]::placeholder{color:var(--ink-faint);font-weight:400}
+  /* weight cell: ± flips sign for assisted lifts (iPhone number pad has no minus) */
+  .wcell{position:relative}
+  .wcell input{padding-left:30px}
+  .pm{
+    position:absolute;left:2px;top:50%;transform:translateY(-50%);
+    width:28px;height:30px;border:none;background:none;cursor:pointer;
+    font-family:var(--mono);font-size:15px;font-weight:700;color:var(--ink-faint);
+  }
+  .wcell.neg .pm{color:var(--ss)}
+  .wcell.neg input{color:var(--ss)}
   .prev{font-family:var(--mono);font-size:11px;color:var(--ink-faint);text-align:right;line-height:1.2}
   .prev b{color:var(--ink-dim);font-weight:600}
 
@@ -543,12 +553,13 @@ function priorEntry(week, dayKey, liftId){
 function verdict(lift, week, dayKey){
   const prev = priorEntry(week, dayKey, lift.id);
   if(week === DELOAD_WEEK){
-    const ws = prev ? prev.rows.map(s => Number(s.w) || 0) : [];
+    const ws = prev ? prev.rows.filter(s => s.w !== "" && s.w != null).map(s => Number(s.w) || 0) : [];
     const top = ws.length ? Math.max(...ws) : 0;
-    return {
-      cls:"hold", text:"Deload",
-      cue: top ? "Use ~" + Math.round(top * 0.6 / 5) * 5 + " lb (60% of " + top + ")." : "Use ~60% of last week's load."
-    };
+    // negative = assisted: deload means MORE assistance, not less
+    const cue = top > 0 ? "Use ~" + Math.round(top * 0.6 / 5) * 5 + " lb (60% of " + top + ")."
+              : top < 0 ? "Use ~" + Math.round(top * 1.4 / 5) * 5 + " lb (40% more assist than " + top + ")."
+              : "Use ~60% of last week's load.";
+    return { cls:"hold", text:"Deload", cue:cue };
   }
   if(!prev) return {cls:"none", text:"No data", cue:"Log a session to get a call."};
   const sets = prev.rows.filter(s => s.r !== "" && s.r != null);
@@ -556,14 +567,15 @@ function verdict(lift, week, dayKey){
 
   const allTop = sets.every(s => Number(s.r) >= lift.hi);
   const anyLow = sets.some(s => Number(s.r) < lift.lo);
-  const topW   = Math.max(...sets.map(s => Number(s.w) || 0));
+  const wts    = sets.filter(s => s.w !== "" && s.w != null).map(s => Number(s.w) || 0);
+  const topW   = wts.length ? Math.max(...wts) : 0;
 
   if(allTop){
     const next = lift.inc ? topW + lift.inc : topW;
     return {
-      cls:"up", text:"↑ Add weight",
+      cls:"up", text: topW < 0 ? "↑ Less assist" : "↑ Add weight",
       cue: lift.inc
-        ? "Hit " + lift.hi + " on every set. Go " + next + " lb, reset to " + lift.lo + "."
+        ? "Hit " + lift.hi + " on every set. Go " + next + " lb" + (topW < 0 ? " (less assist)" : "") + ", reset to " + lift.lo + "."
         : "Hit " + lift.hi + " on every set. Add load or reps."
     };
   }
@@ -831,7 +843,30 @@ function buildCard(lift, day){
     const wIn = document.createElement("input");
     wIn.type="number"; wIn.inputMode="decimal"; wIn.step="2.5";
     wIn.placeholder="—"; wIn.value = rows[i].w;
-    wIn.oninput = (function(idx){ return function(e){ rows[idx].w = e.target.value; save(DB); }; })(i);
+    const wCell = document.createElement("div");
+    wCell.className = "wcell";
+    const pm = document.createElement("button");
+    pm.className = "pm"; pm.type = "button"; pm.textContent = "±";
+    pm.setAttribute("aria-label", "Make weight negative (assisted)");
+    wCell.appendChild(pm); wCell.appendChild(wIn);
+    // A number input can't hold a lone "-", so on an empty box ± arms a
+    // pending minus that is applied to the first digit typed.
+    let pendingNeg = false;
+    function paintSign(){ wCell.classList.toggle("neg", pendingNeg || Number(wIn.value) < 0); wIn.placeholder = pendingNeg ? "−" : "—"; }
+    wIn.oninput = (function(idx){ return function(e){
+      if(pendingNeg && e.target.value !== "" && Number(e.target.value) > 0) e.target.value = "-" + e.target.value;
+      if(e.target.value !== "") pendingNeg = false;
+      rows[idx].w = e.target.value; save(DB); paintSign();
+    }; })(i);
+    pm.onmousedown = function(e){ e.preventDefault(); };   // keep the keyboard up
+    pm.onclick = (function(idx){ return function(){
+      const v = wIn.value;
+      if(v === "" || Number(v) === 0){ pendingNeg = !pendingNeg; }
+      else { wIn.value = String(-Number(v)); rows[idx].w = wIn.value; save(DB); }
+      paintSign();
+      wIn.focus();
+    }; })(i);
+    paintSign();
 
     const rIn = document.createElement("input");
     rIn.type="number"; rIn.inputMode="numeric"; rIn.step="1";
@@ -843,7 +878,7 @@ function buildCard(lift, day){
     const ls = prev && prev.rows[i];
     p.innerHTML = (ls && ls.w !== "" && ls.r !== "") ? '<b>' + esc(ls.w) + '</b>×' + esc(ls.r) : '—';
 
-    row.appendChild(no); row.appendChild(wIn); row.appendChild(rIn); row.appendChild(p);
+    row.appendChild(no); row.appendChild(wCell); row.appendChild(rIn); row.appendChild(p);
     body.appendChild(row);
   }
 

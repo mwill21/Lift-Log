@@ -295,6 +295,9 @@
     color:#8b95a3;font-size:17px;padding:0 13px;
   }
   .timer-reset:active{background:rgba(255,255,255,.16);color:#fff}
+  .timer-reset{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:52px}
+  .timer-reset small{font-family:var(--mono);font-size:8px;letter-spacing:.06em;text-transform:uppercase}
+  .timer-restart{color:#facc15}
   .timer.dragging{opacity:.85;box-shadow:0 8px 24px rgba(13,17,23,.35)}
 
   /* ---------- fuel tab ---------- */
@@ -404,7 +407,8 @@
     <span class="timer-time" id="timerTime">0:00</span>
     <span class="timer-hint" id="timerHint">tap to start</span>
   </button>
-  <button class="timer-reset" id="timerReset" aria-label="Reset timer">↺</button>
+  <button class="timer-reset timer-restart" id="timerRestart" aria-label="Restart timer from zero">▶<small>restart</small></button>
+  <button class="timer-reset" id="timerReset" aria-label="Reset timer">↺<small>reset</small></button>
 </div>
 
 <script>
@@ -1597,6 +1601,8 @@ if(window.visualViewport){
 
 document.getElementById("timerFace").onclick  = timerStartPause;
 document.getElementById("timerReset").onclick = timerReset;
+// back to 0:00 and running again in one tap — for the next rest
+document.getElementById("timerRestart").onclick = function(){ timerReset(); timerStartPause(); };
 
 renderNav();
 renderMain();

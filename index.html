@@ -199,11 +199,15 @@
     justify-self:end;width:32px;height:32px;border:1px solid var(--line);border-radius:8px;
     background:transparent;color:var(--ink-faint);font-size:16px;cursor:pointer;
   }
-  .adddrop{
-    display:block;margin:2px 0 10px 34px;padding:6px 10px;
-    border:1px dashed var(--line);border-radius:8px;background:transparent;
-    color:var(--accent);font-family:var(--mono);font-size:11px;font-weight:700;
-    letter-spacing:.06em;text-transform:uppercase;cursor:pointer;
+  /* set numbers are buttons: tap to add a drop set under that set */
+  .setbtn{
+    width:26px;height:26px;line-height:24px;border:1px dashed var(--line);border-radius:50%;
+    background:transparent;padding:0;cursor:pointer;
+  }
+  .setbtn.hasdrop{border:1.5px solid var(--accent);color:var(--accent)}
+  .drophint{
+    margin:2px 0 10px 34px;font-family:var(--mono);font-size:10px;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);
   }
   input[type=number]{
     width:100%;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;
@@ -817,11 +821,15 @@ function esc(s){
 let openIds = {};
 function keepOpen(id){ openIds[id] = true; }
 
-function dropsFor(week, liftId){
+// Map of setIndex -> [{w,r}] for one lift-week. Drops saved by the first
+// version (a plain list, always after the last set) are moved under the last set.
+function dropsFor(week, liftId, nSets){
   if(!DB.drops) DB.drops = {};
   if(!DB.drops[week]) DB.drops[week] = {};
-  if(!DB.drops[week][liftId]) DB.drops[week][liftId] = [];
-  return DB.drops[week][liftId];
+  let d = DB.drops[week][liftId];
+  if(Array.isArray(d)) d = DB.drops[week][liftId] = d.length ? {[Math.max(0, nSets - 1)]: d} : {};
+  if(!d) d = DB.drops[week][liftId] = {};
+  return d;
 }
 
 // One weight × reps row bound to obj {w, r}. `last` fills the right column.
@@ -986,37 +994,54 @@ function buildCard(lift, day){
   // prior-week name, for the Last column header line
   const prevName = prev && !prev.archived ? liftNameOn(prev.week, currentDay, lift.id) : null;
 
+  // Drop sets hang under the set they followed: DB.drops[week][liftId][setIndex] = [{w,r}, ...]
+  const drops = dropsFor(wk, lift.id, nSets);
+  const prevDrops = (prev && !prev.archived) ? dropsFor(prev.week, lift.id, setsOn(prev.week, currentDay, lift.id)) : {};
+
   for(let i=0;i<nSets;i++){
     const ls = prev && prev.rows[i];
     const p = document.createElement("div");
     p.className = "prev";
     p.innerHTML = (ls && ls.w !== "" && ls.r !== "") ? '<b>' + esc(ls.w) + '</b>×' + esc(ls.r) : '—';
-    body.appendChild(setRow(String(i+1), rows[i], p, null));
-  }
+    const row = setRow(String(i+1), rows[i], p, null);
 
-  // ---- drop sets: extra rows after the last set, not used for progression ----
-  const drops = dropsFor(wk, lift.id);
-  const prevDrops = (prev && !prev.archived && DB.drops && DB.drops[prev.week] && DB.drops[prev.week][lift.id]) || [];
-  drops.forEach(function(d, j){
-    const x = document.createElement("button");
-    x.className = "dropx"; x.type = "button"; x.textContent = "×";
-    x.setAttribute("aria-label", "Remove drop set");
-    x.onclick = function(){ drops.splice(j, 1); save(DB); keepOpen(lift.id); renderMain(); };
-    const r = setRow("↳", d, x, prevDrops[j] || null);
-    r.classList.add("droprow");
-    body.appendChild(r);
-  });
-  const ad = document.createElement("button");
-  ad.className = "adddrop"; ad.type = "button";
-  ad.textContent = drops.length ? "+ Another drop" : "+ Drop set";
-  ad.onclick = function(){
-    drops.push({w:"", r:""}); save(DB);
-    keepOpen(lift.id); renderMain();
-    const last = document.querySelectorAll('.ex[data-id="' + lift.id + '"] .droprow');
-    const inp = last.length && last[last.length - 1].querySelector("input");
-    if(inp) inp.focus();
-  };
-  body.appendChild(ad);
+    const mine = drops[i] || [];
+    const no = row.querySelector(".setno");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "setno setbtn" + (mine.length ? " hasdrop" : "");
+    btn.textContent = i + 1;
+    btn.setAttribute("aria-label", "Add a drop set after set " + (i + 1));
+    btn.onclick = function(){
+      if(!drops[i]) drops[i] = [];
+      drops[i].push({w:"", r:""}); save(DB);
+      keepOpen(lift.id); renderMain();
+      const dr = document.querySelectorAll('.ex[data-id="' + lift.id + '"] .droprow[data-set="' + i + '"]');
+      const inp = dr.length && dr[dr.length - 1].querySelector("input");
+      if(inp) inp.focus();
+    };
+    row.replaceChild(btn, no);
+    body.appendChild(row);
+
+    mine.forEach(function(d, j){
+      const x = document.createElement("button");
+      x.className = "dropx"; x.type = "button"; x.textContent = "×";
+      x.setAttribute("aria-label", "Remove drop set");
+      x.onclick = function(){
+        mine.splice(j, 1);
+        if(!mine.length) delete drops[i];
+        save(DB); keepOpen(lift.id); renderMain();
+      };
+      const r = setRow("↳", d, x, (prevDrops[i] || [])[j] || null);
+      r.classList.add("droprow");
+      r.setAttribute("data-set", i);
+      body.appendChild(r);
+    });
+  }
+  const hint = document.createElement("div");
+  hint.className = "drophint";
+  hint.textContent = "Tap a set number to add a drop set";
+  body.appendChild(hint);
 
   if(lift.group){
     const partner = day.lifts.filter(function(l){ return l.group === lift.group && l.id !== lift.id; })[0];
@@ -1442,7 +1467,7 @@ function renderFuel(main){
   h += '<div class="note">' +
          '<h3>What actually decides this</h3>' +
          '<p><b>Track for the first two weeks.</b> Food scale, MyFitnessPal or Cronometer. Most failed bulks are under-eating that felt like over-eating.</p>' +
-         '<p><b>Weigh daily, same time, average the week.</b> Daily weight is mostly water and it will lie to you. Weekly average up <b>0.5–0.75 lb</b> is the target. Under that for two weeks → <b>add 200 cal</b>. Over 1 lb/week → take 200 away.</p>' +
+         '<p><b>Let the lifts tell you.</b> Once a week, look at the tags. If <b>most lifts show Hold</b> — no new weight, no new reps — <b>two weeks in a row</b>, add 200 cal (an extra rice serving or 2 tbsp peanut butter). If lifts keep climbing but your waistband is getting <b>noticeably</b> tighter week to week, take 200 away.</p>' +
        '</div>';
 
   main.innerHTML = h;
@@ -1470,8 +1495,8 @@ function renderNotes(main){
 
     '<div class="deloadbar" style="align-items:flex-start">' +
       '<span class="tag">Target</span>' +
-      '<span class="txt"><b>New Year\'s Eve · 9 weeks.</b> Lean bulk: <b>+0.5–0.75 lb/week</b>, about <b>+4–6 lb</b> by Dec 31. ' +
-      'More food, more sets, every lift pushed up. You are now eating to <b>get</b> bigger.</span>' +
+      '<span class="txt"><b>New Year\'s Eve · 9 weeks.</b> Lean bulk: a modest surplus, more sets, and <b>every lift moving up</b>. ' +
+      'Strength going up week to week is the sign it is working. You are now eating to <b>get</b> bigger.</span>' +
     '</div>' +
 
     '<div class="note">' +
@@ -1508,8 +1533,8 @@ function renderNotes(main){
         '<li>Calories: <b>~3,400/day</b> (~450 over maintenance for 180–200 lb)</li>' +
         '<li>Protein: <b>~200 g/day</b> — about 1 g per lb, spread over 5–6 feedings</li>' +
         '<li>Carbs: <b>~430 g</b> — most of them around training. They fuel the extra sets.</li>' +
-        '<li>Weigh in <b>every morning</b>, after the bathroom, before food. Judge the <b>weekly average</b>, not single days.</li>' +
-        '<li>Gaining <b>under 0.5 lb/week</b> for 2 weeks → add 200 cal. <b>Over 1 lb/week</b> → take 200 away.</li>' +
+        '<li><b>Adjust by your lifts, not the scale.</b> Most lifts on <b>Hold</b> for 2 weeks running → add 200 cal. Lifts climbing but your waist getting noticeably softer → take 200 away.</li>' +
+        '<li>A lift counts as progressing if it gained <b>weight or reps</b> on its regular sets vs last week. Drop sets do not count.</li>' +
         '<li>Creatine monohydrate: <b>5 g/day</b> — expect 2–4 lb of water in the muscles the first weeks; that is the look you want.</li>' +
         '<li>Sleep: <b>8 hr</b>. Muscle is built while you sleep, not in the gym.</li>' +
       '</ul>' +

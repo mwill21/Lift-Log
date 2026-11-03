@@ -193,6 +193,18 @@
   }
   .setrow{display:grid;grid-template-columns:26px 1fr 1fr 60px;gap:8px;align-items:center;margin-bottom:7px}
   .setno{font-family:var(--mono);font-size:13px;color:var(--ink-faint);text-align:center;font-weight:600}
+  .droprow .setno{color:var(--accent);font-size:15px}
+  .droprow input[type=number]{border-style:dashed}
+  .dropx{
+    justify-self:end;width:32px;height:32px;border:1px solid var(--line);border-radius:8px;
+    background:transparent;color:var(--ink-faint);font-size:16px;cursor:pointer;
+  }
+  .adddrop{
+    display:block;margin:2px 0 10px 34px;padding:6px 10px;
+    border:1px dashed var(--line);border-radius:8px;background:transparent;
+    color:var(--accent);font-family:var(--mono);font-size:11px;font-weight:700;
+    letter-spacing:.06em;text-transform:uppercase;cursor:pointer;
+  }
   input[type=number]{
     width:100%;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;
     color:var(--ink);font-family:var(--mono);font-size:16px;font-weight:600;
@@ -550,7 +562,7 @@ function startProgram(db){
     db.history.unshift({
       label: db.programId ? db.programId : "Cut",
       endedWeek: db.week || 1,
-      weekLog: db.weekLog, edits: db.edits || {}
+      weekLog: db.weekLog, edits: db.edits || {}, drops: db.drops || {}
     });
   }
   // keep exercises you added that were still active; they start at Week 1
@@ -560,6 +572,7 @@ function startProgram(db){
   }
   db.weekLog = {};
   db.edits = {};
+  db.drops = {};
   db.week = 1;
   db.programId = PROGRAM_ID;
 }
@@ -645,14 +658,33 @@ function verdict(lift, week, dayKey){
 }
 
 /* =========================================================
-   EDITS — now PER-WEEK. DB.edits[week][dayKey][liftId] = patch.
-   Editing on a week touches only that week.
+   EDITS — CARRY FORWARD. DB.edits[week][dayKey][liftId] = patch.
+   The patch saved on a week applies to that week and every later
+   week until the next saved patch ({} = back to original).
+   Earlier weeks keep whatever they had.
    ========================================================= */
 const EDITABLE = ["name","sets","lo","hi","rir","rest"];
 let editingId = null;
 
 function liftEdit(week, dayKey, liftId){
-  return (DB.edits && DB.edits[week] && DB.edits[week][dayKey] && DB.edits[week][dayKey][liftId]) || null;
+  if(!DB.edits) return null;
+  for(let w = week; w >= 1; w--){
+    const e = DB.edits[w] && DB.edits[w][dayKey] && DB.edits[w][dayKey][liftId];
+    if(e) return e;
+  }
+  return null;
+}
+
+// Store `patch` as the lift's state from `week` on, replacing later patches.
+function setEditFrom(week, dayKey, liftId, patch){
+  if(!DB.edits) DB.edits = {};
+  for(const w in DB.edits){
+    if(Number(w) > week && DB.edits[w][dayKey]) delete DB.edits[w][dayKey][liftId];
+  }
+  if(!DB.edits[week]) DB.edits[week] = {};
+  if(!DB.edits[week][dayKey]) DB.edits[week][dayKey] = {};
+  DB.edits[week][dayKey][liftId] = patch;
+  save(DB);
 }
 
 function isEdited(week, dayKey, liftId){
@@ -718,24 +750,18 @@ function resolveDay(dayKey, week){
 }
 
 function saveEdit(week, dayKey, liftId, patch){
-  if(!DB.edits) DB.edits = {};
-  if(!DB.edits[week]) DB.edits[week] = {};
-  if(!DB.edits[week][dayKey]) DB.edits[week][dayKey] = {};
-  const cur = DB.edits[week][dayKey][liftId] || {};
+  const cur = Object.assign({}, liftEdit(week, dayKey, liftId) || {});
   EDITABLE.forEach(function(k){
     if(patch[k] === undefined) return;
     const orig = baseLift(dayKey, liftId)[k];
     if(String(patch[k]) === String(orig)) delete cur[k];
     else cur[k] = patch[k];
   });
-  if(Object.keys(cur).length) DB.edits[week][dayKey][liftId] = cur;
-  else delete DB.edits[week][dayKey][liftId];
-  save(DB);
+  setEditFrom(week, dayKey, liftId, cur);
 }
 
 function resetEdit(week, dayKey, liftId){
-  if(DB.edits && DB.edits[week] && DB.edits[week][dayKey]) delete DB.edits[week][dayKey][liftId];
-  save(DB);
+  setEditFrom(week, dayKey, liftId, {});
 }
 
 function renderNav(){
@@ -745,7 +771,7 @@ function renderNav(){
     const b = document.createElement("button");
     b.textContent = PROGRAM[d].label;
     if(d === currentDay) b.className = "on";
-    b.onclick = function(){ currentDay=d; editingId=null; addingEx=false; renderNav(); renderMain(); window.scrollTo(0,0); };
+    b.onclick = function(){ currentDay=d; editingId=null; addingEx=false; openIds={}; renderNav(); renderMain(); window.scrollTo(0,0); };
     nav.appendChild(b);
   });
   [["fuel","Fuel"],["notes","Plan"]].forEach(function(pair){
@@ -763,6 +789,7 @@ const LAST_WEEK   = 9;   // Nov 3 → NYE week
 
 function setWeek(w){
   DB.week = Math.min(LAST_WEEK, Math.max(1, w));
+  openIds = {};
   save(DB);
   renderWeek();
   renderMain();
@@ -786,6 +813,66 @@ function esc(s){
   });
 }
 
+// Cards that are open stay open when the day re-renders (e.g. adding a drop).
+let openIds = {};
+function keepOpen(id){ openIds[id] = true; }
+
+function dropsFor(week, liftId){
+  if(!DB.drops) DB.drops = {};
+  if(!DB.drops[week]) DB.drops[week] = {};
+  if(!DB.drops[week][liftId]) DB.drops[week][liftId] = [];
+  return DB.drops[week][liftId];
+}
+
+// One weight × reps row bound to obj {w, r}. `last` fills the right column.
+// `ghost` (optional {w, r}) shows last week's numbers as placeholders.
+function setRow(label, obj, last, ghost){
+  const row = document.createElement("div");
+  row.className = "setrow";
+
+  const no = document.createElement("div");
+  no.className = "setno";
+  no.textContent = label;
+
+  const blank = function(k){ return ghost && ghost[k] !== "" && ghost[k] != null ? String(ghost[k]) : "—"; };
+
+  const wIn = document.createElement("input");
+  wIn.type="number"; wIn.inputMode="decimal"; wIn.step="2.5";
+  wIn.value = obj.w;
+  const wCell = document.createElement("div");
+  wCell.className = "wcell";
+  const pm = document.createElement("button");
+  pm.className = "pm"; pm.type = "button"; pm.textContent = "±";
+  pm.setAttribute("aria-label", "Make weight negative (assisted)");
+  wCell.appendChild(pm); wCell.appendChild(wIn);
+  // A number input can't hold a lone "-", so on an empty box ± arms a
+  // pending minus that is applied to the first digit typed.
+  let pendingNeg = false;
+  function paintSign(){ wCell.classList.toggle("neg", pendingNeg || Number(wIn.value) < 0); wIn.placeholder = pendingNeg ? "−" : blank("w"); }
+  wIn.oninput = function(e){
+    if(pendingNeg && e.target.value !== "" && Number(e.target.value) > 0) e.target.value = "-" + e.target.value;
+    if(e.target.value !== "") pendingNeg = false;
+    obj.w = e.target.value; save(DB); paintSign();
+  };
+  pm.onmousedown = function(e){ e.preventDefault(); };   // keep the keyboard up
+  pm.onclick = function(){
+    const v = wIn.value;
+    if(v === "" || Number(v) === 0){ pendingNeg = !pendingNeg; }
+    else { wIn.value = String(-Number(v)); obj.w = wIn.value; save(DB); }
+    paintSign();
+    wIn.focus();
+  };
+  paintSign();
+
+  const rIn = document.createElement("input");
+  rIn.type="number"; rIn.inputMode="numeric"; rIn.step="1";
+  rIn.placeholder = blank("r"); rIn.value = obj.r;
+  rIn.oninput = function(e){ obj.r = e.target.value; save(DB); };
+
+  row.appendChild(no); row.appendChild(wCell); row.appendChild(rIn); row.appendChild(last);
+  return row;
+}
+
 function buildCard(lift, day){
   const wk = DB.week;
   const v = verdict(lift, wk, currentDay);
@@ -803,19 +890,25 @@ function buildCard(lift, day){
 
   const card = document.createElement("div");
   card.className = "ex";
+  card.setAttribute("data-id", lift.id);
+  if(openIds[lift.id]) card.classList.add("open");
 
   const head = document.createElement("div");
   head.className = "ex-head";
   head.innerHTML =
     (lift.slot ? '<div class="slot">' + lift.slot + '</div>' : '') +
     '<div class="ex-name">' +
-      '<div class="n">' + esc(lift.name) + (edited ? ' <span class="editdot" title="edited this week">•</span>' : '') + '</div>' +
+      '<div class="n">' + esc(lift.name) + (edited ? ' <span class="editdot" title="changed from the original">•</span>' : '') + '</div>' +
       '<div class="m">' + nSets + ' × ' + lift.lo + '–' + lift.hi + ' · ' + lift.rir + ' RIR · ' + esc(lift.rest) + '</div>' +
     '</div>' +
     '<div class="flag ' + v.cls + '">' + v.text + '</div>' +
     '<button class="editbtn" aria-label="Edit exercise">✎</button>' +
     '<div class="chev">▶</div>';
-  function toggleCard(){ card.classList.toggle("open"); unlockTimer(); }
+  function toggleCard(){
+    card.classList.toggle("open");
+    openIds[lift.id] = card.classList.contains("open");
+    unlockTimer();
+  }
   head.querySelector(".ex-name").onclick = toggleCard;
   head.querySelector(".chev").onclick = toggleCard;
   head.querySelector(".slot") && (head.querySelector(".slot").onclick = toggleCard);
@@ -826,13 +919,13 @@ function buildCard(lift, day){
   };
   card.appendChild(head);
 
-  // ---- inline editor (edits THIS week only) ----
+  // ---- inline editor (changes apply from this week on) ----
   if(editingId === lift.id){
     card.classList.add("open");
     const ed = document.createElement("div");
     ed.className = "editor";
     ed.innerHTML =
-      '<div class="ednote">Editing Week ' + wk + ' only</div>' +
+      '<div class="ednote">Changes apply from Week ' + wk + ' on</div>' +
       '<div class="edrow"><label>Exercise</label>' +
         '<input type="text" id="ed_name" value="' + esc(lift.name) + '"></div>' +
       '<div class="edgrid">' +
@@ -894,54 +987,36 @@ function buildCard(lift, day){
   const prevName = prev && !prev.archived ? liftNameOn(prev.week, currentDay, lift.id) : null;
 
   for(let i=0;i<nSets;i++){
-    const row = document.createElement("div");
-    row.className = "setrow";
-
-    const no = document.createElement("div");
-    no.className = "setno";
-    no.textContent = i+1;
-
-    const wIn = document.createElement("input");
-    wIn.type="number"; wIn.inputMode="decimal"; wIn.step="2.5";
-    wIn.placeholder="—"; wIn.value = rows[i].w;
-    const wCell = document.createElement("div");
-    wCell.className = "wcell";
-    const pm = document.createElement("button");
-    pm.className = "pm"; pm.type = "button"; pm.textContent = "±";
-    pm.setAttribute("aria-label", "Make weight negative (assisted)");
-    wCell.appendChild(pm); wCell.appendChild(wIn);
-    // A number input can't hold a lone "-", so on an empty box ± arms a
-    // pending minus that is applied to the first digit typed.
-    let pendingNeg = false;
-    function paintSign(){ wCell.classList.toggle("neg", pendingNeg || Number(wIn.value) < 0); wIn.placeholder = pendingNeg ? "−" : "—"; }
-    wIn.oninput = (function(idx){ return function(e){
-      if(pendingNeg && e.target.value !== "" && Number(e.target.value) > 0) e.target.value = "-" + e.target.value;
-      if(e.target.value !== "") pendingNeg = false;
-      rows[idx].w = e.target.value; save(DB); paintSign();
-    }; })(i);
-    pm.onmousedown = function(e){ e.preventDefault(); };   // keep the keyboard up
-    pm.onclick = (function(idx){ return function(){
-      const v = wIn.value;
-      if(v === "" || Number(v) === 0){ pendingNeg = !pendingNeg; }
-      else { wIn.value = String(-Number(v)); rows[idx].w = wIn.value; save(DB); }
-      paintSign();
-      wIn.focus();
-    }; })(i);
-    paintSign();
-
-    const rIn = document.createElement("input");
-    rIn.type="number"; rIn.inputMode="numeric"; rIn.step="1";
-    rIn.placeholder="—"; rIn.value = rows[i].r;
-    rIn.oninput = (function(idx){ return function(e){ rows[idx].r = e.target.value; save(DB); }; })(i);
-
+    const ls = prev && prev.rows[i];
     const p = document.createElement("div");
     p.className = "prev";
-    const ls = prev && prev.rows[i];
     p.innerHTML = (ls && ls.w !== "" && ls.r !== "") ? '<b>' + esc(ls.w) + '</b>×' + esc(ls.r) : '—';
-
-    row.appendChild(no); row.appendChild(wCell); row.appendChild(rIn); row.appendChild(p);
-    body.appendChild(row);
+    body.appendChild(setRow(String(i+1), rows[i], p, null));
   }
+
+  // ---- drop sets: extra rows after the last set, not used for progression ----
+  const drops = dropsFor(wk, lift.id);
+  const prevDrops = (prev && !prev.archived && DB.drops && DB.drops[prev.week] && DB.drops[prev.week][lift.id]) || [];
+  drops.forEach(function(d, j){
+    const x = document.createElement("button");
+    x.className = "dropx"; x.type = "button"; x.textContent = "×";
+    x.setAttribute("aria-label", "Remove drop set");
+    x.onclick = function(){ drops.splice(j, 1); save(DB); keepOpen(lift.id); renderMain(); };
+    const r = setRow("↳", d, x, prevDrops[j] || null);
+    r.classList.add("droprow");
+    body.appendChild(r);
+  });
+  const ad = document.createElement("button");
+  ad.className = "adddrop"; ad.type = "button";
+  ad.textContent = drops.length ? "+ Another drop" : "+ Drop set";
+  ad.onclick = function(){
+    drops.push({w:"", r:""}); save(DB);
+    keepOpen(lift.id); renderMain();
+    const last = document.querySelectorAll('.ex[data-id="' + lift.id + '"] .droprow');
+    const inp = last.length && last[last.length - 1].querySelector("input");
+    if(inp) inp.focus();
+  };
+  body.appendChild(ad);
 
   if(lift.group){
     const partner = day.lifts.filter(function(l){ return l.group === lift.group && l.id !== lift.id; })[0];

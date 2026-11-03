@@ -414,54 +414,57 @@
 <script>
 const PROGRAM = {
   lowerA: {
-    label:"Lower A", title:"Lower A — Squat Dominant", dur:"~57 min",
-    blocks:{ A:{desc:"Quads + calves — no overlap"} },
+    label:"Lower A", title:"Lower A — Quads + Glutes", dur:"~62 min",
+    blocks:{ A:{desc:"Quads + calves — no overlap"}, B:{desc:"Quads / hams antagonists"} },
     lifts:[
-      {id:"squat",     name:"Back Squat",            sets:4, lo:5,  hi:7,  rir:2, rest:"3 min", inc:10, group:null},
-      {id:"legpress",  name:"Leg Press",             sets:3, lo:10, hi:12, rir:1, rest:"2 min", inc:10, group:null},
-      {id:"bulgarian", name:"Bulgarian Split Squat", sets:3, lo:8,  hi:10, rir:1, rest:"45 s",  inc:5,  group:"A", slot:"A1", alt:"Walking lunge"},
-      {id:"seatcalf",  name:"Seated Calf Raise",     sets:3, lo:12, hi:15, rir:0, rest:"45 s",  inc:5,  group:"A", slot:"A2", alt:"Calf press on leg press"},
-      {id:"legext",    name:"Leg Extension",         sets:3, lo:12, hi:15, rir:0, rest:"75 s",  inc:5,  group:null}
+      {id:"squat",     name:"Back Squat",            sets:4, lo:6,  hi:8,  rir:2, rest:"3 min", inc:10, group:null},
+      {id:"legpress",  name:"Leg Press",             sets:3, lo:10, hi:15, rir:1, rest:"2 min", inc:10, group:null},
+      {id:"bulgarian", name:"Bulgarian Split Squat", sets:3, lo:8,  hi:12, rir:1, rest:"45 s",  inc:5,  group:"A", slot:"A1", alt:"Walking lunge"},
+      {id:"seatcalf",  name:"Seated Calf Raise",     sets:4, lo:12, hi:15, rir:0, rest:"45 s",  inc:5,  group:"A", slot:"A2", alt:"Calf press on leg press"},
+      {id:"legext",    name:"Leg Extension",         sets:3, lo:12, hi:15, rir:0, rest:"45 s",  inc:5,  group:"B", slot:"B1", alt:"Sissy squat"},
+      {id:"lyingcurl", name:"Lying Leg Curl",        sets:3, lo:10, hi:12, rir:1, rest:"45 s",  inc:5,  group:"B", slot:"B2", alt:"Seated leg curl"}
     ]
   },
   upperA: {
-    label:"Upper A", title:"Upper A — Horizontal Push / Pull", dur:"~58 min",
-    blocks:{ A:{desc:"Heavy push / pull — rest 90 s between"}, B:{desc:"Push / pull antagonists"}, C:{desc:"C2 runs 1 extra set solo"} },
+    label:"Upper A", title:"Upper A — Chest + Back", dur:"~65 min",
+    blocks:{ A:{desc:"Heavy push / pull — rest 90 s between"}, B:{desc:"Push / pull antagonists"}, C:{desc:"Chest / rear delt"} },
     lifts:[
-      {id:"bench",     name:"Barbell Bench Press", sets:4, lo:5,  hi:7,  rir:2, rest:"90 s", inc:5, group:"A", slot:"A1", alt:"DB bench press"},
+      {id:"bench",     name:"Barbell Bench Press", sets:4, lo:6,  hi:8,  rir:2, rest:"90 s", inc:5, group:"A", slot:"A1", alt:"DB bench press"},
       {id:"csrow",     name:"Chest-Supported Row", sets:4, lo:8,  hi:10, rir:1, rest:"90 s", inc:5, group:"A", slot:"A2", alt:"Seated cable row"},
-      {id:"inclinedb", name:"Incline DB Press",    sets:3, lo:10, hi:12, rir:1, rest:"45 s",  inc:5, group:"B", slot:"B1", alt:"Machine incline press"},
-      {id:"cablerow",  name:"Cable Row (neutral)", sets:3, lo:10, hi:12, rir:1, rest:"45 s",  inc:5, group:"B", slot:"B2", alt:"Single-arm DB row"},
-      {id:"fly",       name:"Cable Fly",           sets:2, lo:12, hi:15, rir:0, rest:"40 s",  inc:5, group:"C", slot:"C1", alt:"Pec deck"},
-      {id:"facepull",  name:"Face Pull",           sets:3, lo:15, hi:20, rir:1, rest:"40 s",  inc:5, group:"C", slot:"C2", alt:"Band pull-apart"}
+      {id:"inclinedb", name:"Incline DB Press",    sets:4, lo:8,  hi:12, rir:1, rest:"45 s", inc:5, group:"B", slot:"B1", alt:"Machine incline press"},
+      {id:"cablerow",  name:"Cable Row (neutral)", sets:3, lo:10, hi:12, rir:1, rest:"45 s", inc:5, group:"B", slot:"B2", alt:"Single-arm DB row"},
+      {id:"fly",       name:"Cable Fly",           sets:3, lo:12, hi:15, rir:0, rest:"40 s", inc:5, group:"C", slot:"C1", alt:"Pec deck"},
+      {id:"facepull",  name:"Face Pull",           sets:3, lo:15, hi:20, rir:1, rest:"40 s", inc:5, group:"C", slot:"C2", alt:"Band pull-apart"},
+      {id:"latraiseA", name:"DB Lateral Raise",    sets:3, lo:15, hi:20, rir:0, rest:"45 s", inc:5, group:null}
     ]
   },
   lowerB: {
-    label:"Lower B", title:"Lower B — Hinge Dominant", dur:"~56 min",
+    label:"Lower B", title:"Lower B — Hams + Glutes", dur:"~58 min",
     blocks:{ A:{desc:"Hams + calves — no overlap"} },
     lifts:[
       {id:"rdl",       name:"Romanian Deadlift",        sets:4, lo:6,  hi:8,  rir:2, rest:"3 min", inc:10, group:null},
-      {id:"hack",      name:"Hack Squat / Front Squat", sets:3, lo:8,  hi:10, rir:1, rest:"2 min", inc:10, group:null},
+      {id:"hack",      name:"Hack Squat / Front Squat", sets:3, lo:8,  hi:12, rir:1, rest:"2 min", inc:10, group:null},
       {id:"legcurl",   name:"Seated Leg Curl",          sets:4, lo:10, hi:12, rir:0, rest:"45 s",  inc:5,  group:"A", slot:"A1", alt:"Lying leg curl"},
       {id:"standcalf", name:"Standing Calf Raise",      sets:4, lo:8,  hi:12, rir:0, rest:"45 s",  inc:5,  group:"A", slot:"A2", alt:"Smith machine calf raise"},
-      {id:"hipthrust", name:"Hip Thrust",               sets:3, lo:10, hi:12, rir:1, rest:"90 s",  inc:10, group:null}
+      {id:"hipthrust", name:"Hip Thrust",               sets:3, lo:8,  hi:12, rir:1, rest:"90 s",  inc:10, group:null}
     ]
   },
   upperB: {
-    label:"Upper B", title:"Upper B — Vertical Push / Pull", dur:"~59 min",
-    blocks:{ A:{desc:"Heavy pull / push — rest 90 s between"}, B:{desc:"Pull / push antagonists"}, C:{desc:"C1 runs 2 extra sets solo"} },
+    label:"Upper B", title:"Upper B — Shoulders + Back Width", dur:"~66 min",
+    blocks:{ A:{desc:"Heavy pull / push — rest 90 s between"}, B:{desc:"Pull / push antagonists"}, C:{desc:"C1 runs 1 extra set solo"} },
     lifts:[
       {id:"pullup",   name:"Weighted Pull-up",        sets:4, lo:6,  hi:8,  rir:2, rest:"90 s", inc:5, group:"A", slot:"A1", alt:"Lat pulldown"},
       {id:"ohp",      name:"Standing Overhead Press", sets:4, lo:6,  hi:8,  rir:2, rest:"90 s", inc:5, group:"A", slot:"A2", alt:"Seated DB press"},
-      {id:"pulldown", name:"Lat Pulldown (wide)",     sets:3, lo:10, hi:12, rir:1, rest:"45 s",    inc:5, group:"B", slot:"B1", alt:"Machine pulldown"},
-      {id:"dip",      name:"Weighted Dip",            sets:3, lo:8,  hi:10, rir:1, rest:"45 s",    inc:5, group:"B", slot:"B2", alt:"Close-grip bench"},
-      {id:"latraise", name:"DB Lateral Raise",        sets:4, lo:12, hi:15, rir:0, rest:"40 s",    inc:5, group:"C", slot:"C1", alt:"Cable lateral raise"},
-      {id:"sapd",     name:"Straight-Arm Pulldown",   sets:2, lo:12, hi:15, rir:0, rest:"40 s",    inc:5, group:"C", slot:"C2", alt:"DB pullover"}
+      {id:"pulldown", name:"Lat Pulldown (wide)",     sets:3, lo:10, hi:12, rir:1, rest:"45 s", inc:5, group:"B", slot:"B1", alt:"Machine pulldown"},
+      {id:"dip",      name:"Weighted Dip",            sets:3, lo:8,  hi:12, rir:1, rest:"45 s", inc:5, group:"B", slot:"B2", alt:"Close-grip bench"},
+      {id:"latraise", name:"Cable Lateral Raise",     sets:4, lo:12, hi:15, rir:0, rest:"40 s", inc:5, group:"C", slot:"C1", alt:"DB lateral raise"},
+      {id:"sapd",     name:"Straight-Arm Pulldown",   sets:3, lo:12, hi:15, rir:0, rest:"40 s", inc:5, group:"C", slot:"C2", alt:"DB pullover"},
+      {id:"pecdeck",  name:"Pec Deck",                sets:3, lo:12, hi:15, rir:0, rest:"60 s", inc:5, group:null}
     ]
   },
   arms: {
-    label:"Arms", title:"Arms / Delts / Weak Points", dur:"~54 min",
-    blocks:{ A:{desc:"Biceps / triceps antagonists"}, B:{desc:"Biceps / triceps antagonists"}, C:{desc:"C1 runs 1 extra set solo"} },
+    label:"Arms", title:"Arms / Delts", dur:"~62 min",
+    blocks:{ A:{desc:"Biceps / triceps antagonists"}, B:{desc:"Biceps / triceps antagonists"}, C:{desc:"C1 runs 1 extra set solo"}, D:{desc:"Biceps / triceps finisher"} },
     lifts:[
       {id:"inclinecurl",name:"Incline DB Curl",            sets:4, lo:10, hi:12, rir:0, rest:"50 s", inc:5, group:"A", slot:"A1", alt:"Preacher curl"},
       {id:"ohtri",      name:"Overhead Cable Triceps Ext", sets:4, lo:10, hi:12, rir:0, rest:"50 s", inc:5, group:"A", slot:"A2", alt:"DB overhead extension"},
@@ -469,13 +472,15 @@ const PROGRAM = {
       {id:"pushdown",   name:"Rope Pushdown",              sets:3, lo:12, hi:15, rir:0, rest:"45 s", inc:5, group:"B", slot:"B2", alt:"Bar pushdown"},
       {id:"cablelat",   name:"Cable Lateral Raise",        sets:4, lo:15, hi:20, rir:0, rest:"40 s", inc:5, group:"C", slot:"C1", alt:"DB lateral raise"},
       {id:"reardelt",   name:"Rear Delt Fly",              sets:3, lo:15, hi:20, rir:0, rest:"40 s", inc:5, group:"C", slot:"C2", alt:"Reverse pec deck"},
-      {id:"legraise",   name:"Hanging Leg Raise",          sets:3, lo:10, hi:15, rir:1, rest:"60 s", inc:0, group:null}
+      {id:"preacher",   name:"EZ-Bar Preacher Curl",       sets:3, lo:10, hi:15, rir:0, rest:"40 s", inc:5, group:"D", slot:"D1", alt:"Machine curl"},
+      {id:"skull",      name:"EZ-Bar Skull Crusher",       sets:3, lo:10, hi:12, rir:1, rest:"40 s", inc:5, group:"D", slot:"D2", alt:"Cable overhead extension"}
     ]
   }
 };
 
 const DAY_ORDER = ["lowerA","upperA","lowerB","upperB","arms"];
 const KEY = "liftlog.v1";
+const PROGRAM_ID = "bulk-nye-2026";   // bump to start a new program (see startProgram)
 
 function load(){
   try{ const r = localStorage.getItem(KEY); return r ? JSON.parse(r) : {week:1}; }
@@ -488,6 +493,7 @@ function save(db){
 
 let DB = load();
 migrate(DB);
+startProgram(DB);
 save(DB);
 let currentDay = DAY_ORDER[0];
 
@@ -524,6 +530,57 @@ function migrate(db){
   db._v = 2;
 }
 
+/* -----------------------------------------------------------
+   PROGRAM CHANGEOVER
+   When a new program ships, the old program's logs/edits move to
+   DB.history (newest first) and the week counter restarts at 1.
+   priorEntry() falls back to that archive, so Week 1 still shows
+   the last numbers you lifted.
+   ----------------------------------------------------------- */
+function hasLogs(wl){
+  for(const w in (wl || {})) for(const id in wl[w])
+    if((wl[w][id] || []).some(function(s){ return s.w !== "" || s.r !== ""; })) return true;
+  return false;
+}
+
+function startProgram(db){
+  if(db.programId === PROGRAM_ID) return;
+  if(hasLogs(db.weekLog)){
+    if(!db.history) db.history = [];
+    db.history.unshift({
+      label: db.programId ? db.programId : "Cut",
+      endedWeek: db.week || 1,
+      weekLog: db.weekLog, edits: db.edits || {}
+    });
+  }
+  // keep exercises you added that were still active; they start at Week 1
+  for(const d in (db.custom || {})){
+    db.custom[d] = db.custom[d].filter(function(l){ return l.until == null; });
+    db.custom[d].forEach(function(l){ l.from = 1; });
+  }
+  db.weekLog = {};
+  db.edits = {};
+  db.week = 1;
+  db.programId = PROGRAM_ID;
+}
+
+// Latest non-deload week of an archived program with real numbers for a lift.
+function archivedEntry(liftId, nSets){
+  const hist = DB.history || [];
+  for(let h = 0; h < hist.length; h++){
+    const wl = hist[h].weekLog || {};
+    const weeks = Object.keys(wl).map(Number).sort(function(a,b){ return b - a; });
+    for(let k = 0; k < weeks.length; k++){
+      const w = weeks[k];
+      if(w === 8) continue;   // old deload week
+      const rows = wl[w][liftId] && wl[w][liftId].slice(0, nSets);
+      if(rows && rows.some(function(s){ return s.w !== "" || s.r !== ""; }))
+        return {week:w, rows:rows, archived:hist[h].label};
+    }
+  }
+  return null;
+}
+
 function weekLog(week){
   if(!DB.weekLog) DB.weekLog = {};
   if(!DB.weekLog[week]) DB.weekLog[week] = {};
@@ -551,7 +608,7 @@ function priorEntry(week, dayKey, liftId){
     const rows = all && all.slice(0, setsOn(w, dayKey, liftId));
     if(rows && rows.some(function(s){ return s.w !== "" || s.r !== ""; })) return {week:w, rows:rows};
   }
-  return null;
+  return archivedEntry(liftId, setsOn(week, dayKey, liftId));
 }
 
 function verdict(lift, week, dayKey){
@@ -702,7 +759,7 @@ function renderNav(){
 }
 
 const DELOAD_WEEK = 8;
-const LAST_WEEK   = 15;
+const LAST_WEEK   = 9;   // Nov 3 → NYE week
 
 function setWeek(w){
   DB.week = Math.min(LAST_WEEK, Math.max(1, w));
@@ -834,7 +891,7 @@ function buildCard(lift, day){
   body.appendChild(ch);
 
   // prior-week name, for the Last column header line
-  const prevName = prev ? liftNameOn(prev.week, currentDay, lift.id) : null;
+  const prevName = prev && !prev.archived ? liftNameOn(prev.week, currentDay, lift.id) : null;
 
   for(let i=0;i<nSets;i++){
     const row = document.createElement("div");
@@ -901,7 +958,8 @@ function buildCard(lift, day){
   const l = document.createElement("div");
   l.className = "last";
   const prevLabel = prev
-    ? ("Last: Week " + prev.week + (prevName && prevName !== lift.name ? " · " + prevName : ""))
+    ? (prev.archived ? "Last: " + prev.archived + " · Week " + prev.week
+       : "Last: Week " + prev.week + (prevName && prevName !== lift.name ? " · " + prevName : ""))
     : "No prior week";
   l.innerHTML =
     '<span>' + esc(prevLabel) + '</span>' +
@@ -1032,142 +1090,143 @@ function buildAddForm(){
 }
 
 /* =========================================================
-   FUEL — sample day, ~2,350 cal / 185 g protein
+   FUEL — sample day, lean bulk ~3,400 cal / 200 g protein
    Totals are computed from the rows, never hardcoded.
    ========================================================= */
-const TARGET = {cal:2350, p:185, c:255, f:65};
+const TARGET = {cal:3400, p:200, c:430, f:100};
+
+// Breakfast, top-off, post-workout, afternoon snack and pre-sleep are the
+// same on both plans (eggs, dairy, whey and casein are all vegetarian).
+function bulkFixed(){
+  return {
+    breakfast: {name:"Breakfast", time:"~7:00", items:[
+      {f:"3 whole eggs",                   cal:210, p:18, c:2,  ft:15},
+      {f:"1¼ cups oats (dry, 100 g)",      cal:375, p:13, c:68, ft:6},
+      {f:"1 banana + 1 tbsp peanut butter",cal:200, p:5,  c:30, ft:8},
+      {f:"Black coffee",                   cal:5,   p:0,  c:0,  ft:0}
+    ]},
+    topoff: {name:"Top-off (optional)", time:"~11:15", items:[
+      {f:"1 banana — fast carbs, 45 min pre",cal:105, p:1, c:27, ft:0},
+      {f:"Coffee — pre-workout",           cal:5,   p:0,  c:0,  ft:0}
+    ]},
+    post: {name:"Post-workout snack", time:"~12:45", items:[
+      {f:"1 scoop whey in water — fast protein",cal:120,p:24,c:3,ft:1},
+      {f:"2 rice cakes + 1 tbsp honey",    cal:134, p:1,  c:32, ft:0}
+    ]},
+    snack: {name:"Afternoon snack", time:"~4:00", items:[
+      {f:"PB & honey sandwich (2 tbsp PB)",cal:414, p:16, c:52, ft:18},
+      {f:"1 apple",                        cal:95,  p:0,  c:25, ft:0}
+    ]},
+    sleep: {name:"Pre-sleep", time:"~10:30", items:[
+      {f:"1 scoop (33 g) micellar casein, in water",cal:120,p:24,c:3,ft:1},
+      {f:"1 tbsp peanut butter",           cal:95,  p:4,  c:3,  ft:8}
+    ]}
+  };
+}
 
 const PLANS = {
   omni: {
     label:"Omnivore",
-    meals:[
-      {name:"Breakfast · pre-workout", time:"~7:00", items:[
-        {f:"3 whole eggs",                   cal:210, p:18, c:2,  ft:15},
-        {f:"1 cup oats (dry, 80 g)",         cal:300, p:10, c:54, ft:5},
-        {f:"1 cup blueberries",              cal:85,  p:1,  c:21, ft:0},
-        {f:"Black coffee",                   cal:5,   p:0,  c:0,  ft:0}
-      ]},
-      {name:"Top-off (optional)", time:"~11:15", items:[
-        {f:"½ banana — fast carbs, 45 min pre",cal:53, p:1,  c:14, ft:0},
-        {f:"Coffee — pre-workout",           cal:5,   p:0,  c:0,  ft:0}
-      ]},
-      {name:"Post-workout snack", time:"~12:45", items:[
-        {f:"1 scoop whey in water — fast protein",cal:120,p:24,c:3,ft:1},
-        {f:"½ banana",                       cal:52,  p:1,  c:13, ft:0}
-      ]},
+    meals:(function(F){ return [
+      F.breakfast, F.topoff, F.post,
       {name:"Lunch · recovery meal", time:"~1:30", variants:[
         {label:"Chicken burrito bowl", items:[
           {f:"4 oz chicken breast, grilled in 1 tsp oil",cal:225,p:35,c:0,ft:9},
-          {f:"1 cup rice + ¼ cup black beans",cal:262, p:8,  c:55, ft:0},
-          {f:"Salsa, ½ avocado, cilantro",    cal:140, p:2,  c:10, ft:11}
+          {f:"1½ cups rice + ½ cup black beans",cal:423,p:14, c:88, ft:1},
+          {f:"Salsa, ¼ avocado, cilantro",    cal:80,  p:2,  c:7,  ft:6}
         ]},
         {label:"Turkey sweet-potato skillet", items:[
-          {f:"4 oz 93/7 ground turkey",       cal:185, p:31, c:0,  ft:7},
-          {f:"1 large sweet potato, cubed",   cal:160, p:3,  c:37, ft:0},
+          {f:"5 oz 93/7 ground turkey",       cal:230, p:38, c:0,  ft:9},
+          {f:"2 medium sweet potatoes, cubed",cal:260, p:4,  c:60, ft:0},
           {f:"Peppers, onion, 1 tbsp olive oil",cal:180,p:2, c:12, ft:15},
           {f:"2 corn tortillas",              cal:105, p:3,  c:22, ft:1}
         ]},
         {label:"Chicken marinara pasta", items:[
           {f:"4 oz chicken breast",           cal:185, p:35, c:0,  ft:4},
-          {f:"1¼ cups penne, cooked",         cal:250, p:9,  c:52, ft:1},
-          {f:"½ cup marinara + 1 tbsp olive oil",cal:190,p:2, c:10, ft:16}
+          {f:"2 cups penne, cooked",          cal:400, p:14, c:84, ft:2},
+          {f:"½ cup marinara, 1 tbsp olive oil, 2 tbsp parm",cal:234,p:6,c:10,ft:19}
         ]}
       ]},
-      {name:"Afternoon snack", time:"~4:30", items:[
-        {f:"1 cup nonfat Greek yogurt",      cal:130, p:23, c:9,  ft:0}
-      ]},
-      {name:"Dinner · lighter", time:"~7:30", variants:[
+      F.snack,
+      {name:"Dinner", time:"~7:30", variants:[
         {label:"Beef & broccoli stir-fry", items:[
-          {f:"4 oz flank steak, sliced",      cal:185, p:31, c:1,  ft:7},
+          {f:"5 oz flank steak, sliced",      cal:230, p:39, c:1,  ft:9},
           {f:"2 cups broccoli + peppers",     cal:90,  p:6,  c:14, ft:1},
-          {f:"Soy-garlic sauce, 2 tsp sesame oil, 1 cup rice",cal:315,p:5,c:51,ft:9}
+          {f:"Soy-garlic sauce, 2 tsp sesame oil, 1½ cups rice",cal:418,p:6,c:73,ft:9}
         ]},
         {label:"Baked salmon plate", items:[
           {f:"5 oz salmon, baked",            cal:275, p:33, c:0,  ft:15},
-          {f:"2 cups roasted baby potatoes, 1 tsp oil",cal:280,p:6,c:52,ft:5},
-          {f:"1½ cups green beans, lemon",    cal:55,  p:3,  c:12, ft:0}
+          {f:"2½ cups roasted potatoes, 2 tsp oil",cal:380,p:7,c:65,ft:9},
+          {f:"1½ cups green beans, lemon",    cal:55,  p:3,  c:12, ft:0},
+          {f:"1 dinner roll",                 cal:110, p:4,  c:20, ft:2}
         ]},
-        {label:"Sloppy-joe rice bowl", items:[
-          {f:"4 oz 93/7 ground beef",         cal:175, p:31, c:0,  ft:6},
+        {label:"Sloppy-joe plate", items:[
+          {f:"5 oz 93/7 ground beef",         cal:220, p:39, c:0,  ft:8},
           {f:"Sloppy-joe sauce",              cal:70,  p:1,  c:15, ft:1},
-          {f:"1 cup rice + ½ cup corn",       cal:275, p:7,  c:60, ft:1},
+          {f:"1 brioche bun + 1 cup rice",    cal:405, p:10, c:79, ft:5},
           {f:"¼ cup shredded cheddar",        cal:110, p:7,  c:1,  ft:9}
         ]}
       ]},
-      {name:"Pre-sleep", time:"~10:30", items:[
-        {f:"1 scoop (33 g) micellar casein, in water",cal:120,p:24,c:3,ft:1}
-      ]}
-    ]
+      F.sleep
+    ]; })(bulkFixed())
   },
 
   veg: {
     label:"Vegetarian",
-    meals:[
-      {name:"Breakfast · pre-workout", time:"~7:00", items:[
-        {f:"3 whole eggs",                   cal:210, p:18, c:2,  ft:15},
-        {f:"3 egg whites",                   cal:50,  p:11, c:1,  ft:0},
-        {f:"1 cup oats (dry, 80 g)",         cal:300, p:10, c:54, ft:5},
-        {f:"1 cup blueberries",              cal:85,  p:1,  c:21, ft:0}
-      ]},
-      {name:"Top-off (optional)", time:"~11:15", items:[
-        {f:"½ banana — fast carbs, 45 min pre",cal:53, p:1,  c:14, ft:0},
-        {f:"Coffee — pre-workout",           cal:5,   p:0,  c:0,  ft:0}
-      ]},
-      {name:"Post-workout snack", time:"~12:45", items:[
-        {f:"1 cup nonfat Greek yogurt",      cal:130, p:23, c:9,  ft:0},
-        {f:"½ banana",                       cal:52,  p:1,  c:13, ft:0}
-      ]},
+    meals:(function(F){ return [
+      F.breakfast, F.topoff, F.post,
       {name:"Lunch · recovery meal", time:"~1:30", variants:[
         {label:"Curried lentils & rice", items:[
           {f:"1¼ cup lentils, curried",       cal:290, p:23, c:48, ft:2},
-          {f:"¾ cup rice, cooked",            cal:155, p:3,  c:34, ft:0},
-          {f:"½ cup Greek yogurt, cucumber",  cal:70,  p:12, c:5,  ft:0}
+          {f:"1 cup rice, cooked",            cal:205, p:4,  c:45, ft:0},
+          {f:"1 cup Greek yogurt raita",      cal:140, p:23, c:9,  ft:0},
+          {f:"1 tbsp ghee",                   cal:115, p:0,  c:0,  ft:13}
         ]},
         {label:"Greek chickpea & feta bowl", items:[
-          {f:"1½ cups chickpeas",             cal:270, p:15, c:45, ft:4},
-          {f:"2 oz feta + olive oil",         cal:180, p:8,  c:2,  ft:15},
-          {f:"½ cup Greek yogurt tzatziki",   cal:70,  p:11, c:5,  ft:0}
+          {f:"1 cup chickpeas",               cal:270, p:15, c:45, ft:4},
+          {f:"2 oz feta + 1 tbsp olive oil",  cal:270, p:8,  c:2,  ft:26},
+          {f:"1 whole-wheat pita",            cal:170, p:6,  c:35, ft:2},
+          {f:"¾ cup Greek yogurt tzatziki",   cal:105, p:17, c:7,  ft:0}
         ]},
         {label:"Black bean quesadilla", items:[
           {f:"2 tortillas + ¾ cup black beans",cal:340,p:15, c:56, ft:7},
-          {f:"1½ oz cheese, melted",          cal:130, p:9,  c:1,  ft:11},
-          {f:"½ cup Greek yogurt + salsa",    cal:75,  p:12, c:6,  ft:0}
+          {f:"2 oz cheese, melted",           cal:230, p:14, c:2,  ft:19},
+          {f:"¾ cup Greek yogurt + salsa",    cal:120, p:17, c:10, ft:0},
+          {f:"½ cup rice",                    cal:100, p:2,  c:22, ft:0}
         ]}
       ]},
-      {name:"Afternoon snack", time:"~4:30", items:[
-        {f:"1 oz almonds",                   cal:165, p:6,  c:6,  ft:14}
-      ]},
-      {name:"Dinner · lighter", time:"~7:30", variants:[
+      F.snack,
+      {name:"Dinner", time:"~7:30", variants:[
         {label:"Tofu & edamame stir-fry", items:[
           {f:"8 oz extra-firm tofu, seared",  cal:260, p:28, c:8,  ft:14},
           {f:"1 cup edamame + veg",           cal:200, p:18, c:16, ft:8},
-          {f:"Soy-ginger sauce + ½ cup rice", cal:120, p:3,  c:25, ft:1}
+          {f:"Soy-ginger sauce + 1½ cups rice",cal:338,p:7,  c:76, ft:1}
         ]},
         {label:"Bean & cheese enchilada bake", items:[
           {f:"2 tortillas + 1 cup pinto beans",cal:340,p:16, c:58, ft:6},
           {f:"2 oz cheese + enchilada sauce", cal:180, p:12, c:8,  ft:12},
-          {f:"½ cup Greek yogurt topping",    cal:65,  p:11, c:5,  ft:0}
+          {f:"¾ cup Greek yogurt topping",    cal:100, p:17, c:7,  ft:0},
+          {f:"½ cup rice",                    cal:100, p:2,  c:22, ft:0}
         ]},
-        {label:"Halloumi & chickpea traybake", items:[
-          {f:"3 oz halloumi, pan-seared",     cal:270, p:19, c:2,  ft:20},
-          {f:"1¼ cup chickpeas, roasted",     cal:220, p:12, c:37, ft:4},
+        {label:"Tempeh & halloumi traybake", items:[
+          {f:"4 oz tempeh, roasted",          cal:220, p:23, c:9,  ft:12},
+          {f:"2 oz halloumi, pan-seared",     cal:180, p:13, c:1,  ft:14},
+          {f:"2 cups roasted potatoes",       cal:240, p:6,  c:52, ft:0},
           {f:"2 cups zucchini & peppers",     cal:70,  p:3,  c:13, ft:1}
         ]}
       ]},
-      {name:"Pre-sleep", time:"~10:30", items:[
-        {f:"40 g micellar casein, in water", cal:160, p:36, c:4,  ft:1}
-      ]}
-    ]
+      F.sleep
+    ]; })(bulkFixed())
   }
 };
 
 const SWAPS = {
   omni:[
-    ["Chicken breast", "6 oz cod — 190 cal, 40 g P"],
-    ["Ground beef",    "6 oz sirloin, or 8 oz 99% turkey"],
-    ["Rice",           "Quinoa, potatoes, whole-grain wrap"],
-    ["Casein",         "1 cup cottage cheese — ~28 g P, ~80% casein"],
-    ["Greek yogurt",   "Skyr, or 1 scoop Orgain in water"]
+    ["Chicken breast", "6 oz cod, or 4 oz chicken thigh (+60 cal)"],
+    ["Ground turkey / beef","Lean bison, or 85/15 beef (+60 cal)"],
+    ["Rice",           "Pasta, potatoes, bagels, wraps"],
+    ["PB sandwich",    "2 cups whole milk + a granola bar"],
+    ["Casein",         "1 cup cottage cheese — ~28 g P, ~80% casein"]
   ],
   veg:[
     ["Tofu",           "Tempeh (~31 g P / 8 oz) or seitan (~42 g P / 4 oz)"],
@@ -1179,10 +1238,12 @@ const SWAPS = {
 };
 
 const PLAN_NOTES = {
-  omni:[],
+  omni:[
+    ["Can't finish it all?", "<b>Drink some of it.</b> Swap the afternoon sandwich for a shake: 2 cups whole milk, 1 banana, 2 tbsp peanut butter, ½ cup oats — about the same calories, gone in two minutes.<br><br>Eat lunch and dinner <b>carbs first</b> on days your appetite is low; protein is filling and will crowd out the rest."]
+  ],
   veg:[
-    ["Why this works", "<b>Eggs and dairy do the heavy lifting</b> — eggs, Greek yogurt, cheese, and casein supply <b>well over half</b> of the day's protein. Complete proteins with real leucine. Strip them out and this plan collapses.<br><br><b>Soy is the one plant protein that is actually good.</b> Tofu and edamame are complete and reasonably leucine-rich — soy is the exception among plants, not the rule. Beans and rice alone would need far more food volume for the same effect."],
-    ["Two things to watch", "<b>Fiber is high</b> — likely north of 50 g/day between lentils, beans, chickpeas, edamame, and oats. Healthy, but it is a lot of volume. Ramp up over a week rather than switching cold.<br><br><b>Creatine matters more now.</b> Creatine comes almost entirely from meat, so vegetarians carry lower muscle stores — and tend to see <b>larger</b> gains from supplementing. The 5 g/day was already in the plan; it is doing more work than before."]
+    ["Why this works", "<b>Eggs and dairy do the heavy lifting</b> — eggs, whey, Greek yogurt, cheese, and casein supply <b>well over half</b> of the day's protein. Complete proteins with real leucine. Strip them out and this plan collapses.<br><br><b>Soy is the one plant protein that is actually good.</b> Tofu, tempeh and edamame are complete and reasonably leucine-rich — soy is the exception among plants, not the rule."],
+    ["Two things to watch", "<b>Fiber is high</b> between lentils, beans, chickpeas, oats and fruit. At 3,400 cal that is a lot of volume — if you feel stuffed, swap a bean serving for rice or a tortilla.<br><br><b>Creatine matters more now.</b> Creatine comes almost entirely from meat, so vegetarians carry lower muscle stores — and tend to see <b>larger</b> gains from supplementing. 5 g/day."]
   ]
 };
 
@@ -1221,7 +1282,7 @@ function renderFuel(main){
   const day = sumItems(allItems);
 
   let h = '<div class="daytitle"><span>Fuel — Sample Day</span>' +
-          '<span class="dur">2,350 cal · 185 g P</span></div>';
+          '<span class="dur">' + TARGET.cal.toLocaleString() + ' cal · ' + TARGET.p + ' g P</span></div>';
 
   h += '<div class="seg">';
   Object.keys(PLANS).forEach(function(k){
@@ -1243,7 +1304,7 @@ function renderFuel(main){
            '<span class="tag">Buffer</span>' +
            '<span class="txt">This day lands <b>~' + gap + ' cal under</b> target. ' +
            '<b>Spend it — do not bank it.</b> Extra oil, a slice of bread, another banana. ' +
-           'Chronically undereating on a cut costs you muscle, not fat.</span>' +
+           'On a bulk, the missing calories are the ones that build muscle.</span>' +
          '</div>';
   }
 
@@ -1299,14 +1360,14 @@ function renderFuel(main){
   h += '<div class="note">' +
          '<h3>The rules that matter more than this table</h3>' +
          '<p><b>Anchor every meal on a protein source</b>, then fill in around it. Build around the carb and you will miss.</p>' +
-         '<p><b>Two protein hits, two jobs:</b> a fast one right after the gym (' + (key === "veg" ? "Greek yogurt" : "whey") + ') and slow casein before bed. Do not add a third — powder fills gaps, it does not carry the load.</p>' +
-         '<p><b>Measure the oil. Eyeball the broccoli.</b> Two tbsp of olive oil is 240 cal — 10% of your day in something you would barely notice pouring. Vegetables are effectively free.</p>' +
+         '<p><b>Two protein hits, two jobs:</b> fast whey right after the gym and slow casein before bed. Do not add a third — powder fills gaps, it does not carry the load.</p>' +
+         '<p><b>Oil, peanut butter and rice are your friends now.</b> They are the easiest calories to add without feeling stuffed. Go light on giant salads and piles of vegetables — they fill you up before you hit the number.</p>' +
        '</div>';
 
   h += '<div class="note">' +
          '<h3>What actually decides this</h3>' +
-         '<p><b>Track for two weeks, then stop.</b> Food scale, MyFitnessPal or Cronometer. Long enough to learn what 6 oz of protein and 1 tbsp of oil really look like — then you can eyeball it. Most failed cuts are a measurement problem, not a willpower problem.</p>' +
-         '<p><b>Weigh daily, same time, average the week.</b> Daily weight is mostly water and it will lie to you. If the weekly average is not dropping ~1 lb after two weeks, <b>cut 200 cal — do not add cardio first.</b></p>' +
+         '<p><b>Track for the first two weeks.</b> Food scale, MyFitnessPal or Cronometer. Most failed bulks are under-eating that felt like over-eating.</p>' +
+         '<p><b>Weigh daily, same time, average the week.</b> Daily weight is mostly water and it will lie to you. Weekly average up <b>0.5–0.75 lb</b> is the target. Under that for two weeks → <b>add 200 cal</b>. Over 1 lb/week → take 200 away.</p>' +
        '</div>';
 
   main.innerHTML = h;
@@ -1334,8 +1395,23 @@ function renderNotes(main){
 
     '<div class="deloadbar" style="align-items:flex-start">' +
       '<span class="tag">Target</span>' +
-      '<span class="txt"><b>Oct 31 · ~15 weeks.</b> 195 lb → <b>~180 lb</b> at roughly 1 lb/week. ' +
-      'Training stays heavy; calories come down. You are cutting to <b>look</b> bigger, not eating to <b>get</b> bigger.</span>' +
+      '<span class="txt"><b>New Year\'s Eve · 9 weeks.</b> Lean bulk: <b>+0.5–0.75 lb/week</b>, about <b>+4–6 lb</b> by Dec 31. ' +
+      'More food, more sets, every lift pushed up. You are now eating to <b>get</b> bigger.</span>' +
+    '</div>' +
+
+    '<div class="note">' +
+      '<h3>The calendar</h3>' +
+      '<ul>' +
+        '<li><b>Weeks 1–7</b> (Nov 3 – Dec 21): build. Chase the rep ranges, add weight when the tag says so.</li>' +
+        '<li><b>Week 8</b> (Dec 22–28): deload — half the sets, 60% load. Christmas week; you will recover and look <b>fuller</b> for it.</li>' +
+        '<li><b>Week 9</b> (Dec 29–31): train normally Mon–Tue. <b>Dec 31</b>: no real workout — same party-day routine as Oct 31 (carbs, water, 20-min pump before you go).</li>' +
+      '</ul>' +
+    '</div>' +
+
+    '<div class="note">' +
+      '<h3>What changed from the cut</h3>' +
+      '<p>About <b>20% more sets</b>, aimed at what shows in a shirt: an extra lateral-raise slot on Upper A, a pec-deck finisher on Upper B, a preacher curl + skull crusher superset on Arms, and a leg-curl superset on Lower A. Rep ranges are a little wider so the extra food turns into extra reps.</p>' +
+      '<p>Your cut logs are archived, not deleted. Week 1 shows your <b>last cut numbers</b> in the Last column so you know where to start.</p>' +
     '</div>' +
 
     '<div class="note">' +
@@ -1348,31 +1424,20 @@ function renderNotes(main){
     '<div class="note">' +
       '<h3>Progression rule</h3>' +
       '<p>Hit the <b>top of the rep range on every set</b> → add weight next session, reset to the bottom. The tag on each exercise does this math for you.</p>' +
-      '<p>Fell below the bottom → repeat the weight. In between → stay put and build reps.</p>' +
+      '<p>Fell below the bottom → repeat the weight. In between → stay put and build reps. On a surplus you should see <b>Add weight</b> tags often — if a lift stalls 2 weeks in a row, eat more and sleep more before changing anything else.</p>' +
     '</div>' +
 
     '<div class="note">' +
-      '<h3>Week 8 deload — mandatory</h3>' +
-      '<p>Same exercises, <b>50% of the sets, 60% of the load</b>. On a deficit this matters <b>more</b>, not less — you are recovering on fewer calories. Skipping it is how a cut ends in a tweaked shoulder.</p>' +
-      '<p>Set the counter to week 8 and the app flags it on every day. Deload sessions are logged but <b>excluded from the progression call</b> — week 9 compares against week 7, not against the light week.</p>' +
-    '</div>' +
-
-    '<div class="note">' +
-      '<h3>Nutrition — cutting</h3>' +
+      '<h3>Nutrition — lean bulk</h3>' +
       '<ul>' +
-        '<li>Calories: <b>2,300–2,400/day</b> (~400 deficit)</li>' +
-        '<li>Protein: <b>180–190 g/day</b>, ~45 g × 4 meals</li>' +
-        '<li>Pre-sleep casein: <b>40 g</b>, 30 min before bed — inside the daily total, not on top</li>' +
-        '<li>Target: <b>1 lb/week down.</b> Under 0.5 for 2 weeks → cut 200 more. Over 1.5 → add 200 back.</li>' +
-        '<li>Creatine monohydrate: <b>5 g/day</b>, no loading</li>' +
-        '<li>Sleep: <b>7–8 hr</b></li>' +
+        '<li>Calories: <b>~3,400/day</b> (~450 over maintenance for 180–200 lb)</li>' +
+        '<li>Protein: <b>~200 g/day</b> — about 1 g per lb, spread over 5–6 feedings</li>' +
+        '<li>Carbs: <b>~430 g</b> — most of them around training. They fuel the extra sets.</li>' +
+        '<li>Weigh in <b>every morning</b>, after the bathroom, before food. Judge the <b>weekly average</b>, not single days.</li>' +
+        '<li>Gaining <b>under 0.5 lb/week</b> for 2 weeks → add 200 cal. <b>Over 1 lb/week</b> → take 200 away.</li>' +
+        '<li>Creatine monohydrate: <b>5 g/day</b> — expect 2–4 lb of water in the muscles the first weeks; that is the look you want.</li>' +
+        '<li>Sleep: <b>8 hr</b>. Muscle is built while you sleep, not in the gym.</li>' +
       '</ul>' +
-    '</div>' +
-
-    '<div class="note">' +
-      '<h3>Why the weights stall — and that\'s fine</h3>' +
-      '<p>You are eating at a deficit. Strength will flatten and some lifts will go backwards. <b>That is not failure.</b> Training heavy is what tells your body to keep the muscle while the fat comes off — the progression is the signal, not the goal.</p>' +
-      '<p>So: keep chasing the rep ranges, but expect more <b>Hold</b> tags than <b>Add weight</b> tags. If a lift drops more than ~10% off its best, that is the real warning sign — eat more, sleep more.</p>' +
     '</div>' +
 
     '<div class="note">' +
@@ -1420,6 +1485,7 @@ function renderNotes(main){
       if(!confirm("Replace everything on this device with the backup? This cannot be undone.")) return;
       if(!data.week) data.week = 1;
       migrate(data);
+      startProgram(data);
       DB = data;
       save(DB);
       editingId = null;
@@ -1431,7 +1497,7 @@ function renderNotes(main){
 
   document.getElementById("wipe").onclick = function(){
     if(confirm("Erase all logged numbers, edits and added exercises on every week? This cannot be undone.")){
-      DB = {week:1, weekLog:{}, edits:{}, _v:2, plan: DB.plan};
+      DB = {week:1, weekLog:{}, edits:{}, _v:2, plan: DB.plan, programId: PROGRAM_ID};
       save(DB);
       currentDay = DAY_ORDER[0];
       editingId = null;

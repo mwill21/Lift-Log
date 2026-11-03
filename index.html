@@ -209,6 +209,12 @@
     margin:2px 0 10px 34px;font-family:var(--mono);font-size:10px;
     letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);
   }
+  .repeatbtn{
+    display:block;width:calc(100% - 34px);margin:2px 0 8px 34px;padding:11px;
+    border:1.5px dashed var(--accent);border-radius:8px;background:transparent;
+    color:var(--accent);font-family:var(--mono);font-size:12px;font-weight:700;
+    letter-spacing:.06em;text-transform:uppercase;cursor:pointer;
+  }
   input[type=number]{
     width:100%;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;
     color:var(--ink);font-family:var(--mono);font-size:16px;font-weight:600;
@@ -1038,6 +1044,34 @@ function buildCard(lift, day){
       body.appendChild(r);
     });
   }
+  // "Same again": copy the last filled set into the next set. The label
+  // follows typing live, so it is ready the moment set 1 is entered.
+  const rb = document.createElement("button");
+  rb.type = "button";
+  rb.className = "repeatbtn";
+  function repeatPair(){
+    let k = -1;
+    for(let q = 0; q < nSets; q++) if(rows[q].w !== "" || rows[q].r !== "") k = q;
+    return (k >= 0 && k + 1 < nSets) ? k : -1;
+  }
+  function paintRepeat(){
+    const k = repeatPair();
+    rb.style.display = k < 0 ? "none" : "block";
+    if(k < 0) return;
+    const src = rows[k];
+    rb.textContent = "↓ Same as set " + (k + 1) + " → set " + (k + 2) +
+      "  (" + (src.w !== "" ? src.w : "—") + " × " + (src.r !== "" ? src.r : "—") + ")";
+  }
+  rb.onclick = function(){
+    const k = repeatPair();
+    if(k < 0) return;
+    rows[k + 1].w = rows[k].w; rows[k + 1].r = rows[k].r; save(DB);
+    keepOpen(lift.id); renderMain();
+  };
+  body.addEventListener("input", paintRepeat);
+  paintRepeat();
+  body.appendChild(rb);
+
   const hint = document.createElement("div");
   hint.className = "drophint";
   hint.textContent = "Tap a set number to add a drop set";

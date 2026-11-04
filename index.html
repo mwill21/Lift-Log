@@ -437,14 +437,14 @@
 const PROGRAM = {
   lowerA: {
     label:"Lower A", title:"Lower A — Quads + Glutes", dur:"~62 min",
-    blocks:{ A:{desc:"Quads + calves — no overlap"}, B:{desc:"Quads / hams antagonists"} },
+    blocks:{ A:{desc:"Quads + calves — pause 2 s in the calf stretch"}, B:{desc:"Quads / hams antagonists"} },
     lifts:[
       {id:"squat",     name:"Back Squat",            sets:4, lo:6,  hi:8,  rir:2, rest:"3 min", inc:10, group:null},
       {id:"legpress",  name:"Leg Press",             sets:3, lo:10, hi:15, rir:1, rest:"2 min", inc:10, group:null},
       {id:"bulgarian", name:"Bulgarian Split Squat", sets:3, lo:8,  hi:12, rir:1, rest:"45 s",  inc:5,  group:"A", slot:"A1", alt:"Walking lunge"},
-      {id:"seatcalf",  name:"Seated Calf Raise",     sets:4, lo:12, hi:15, rir:0, rest:"45 s",  inc:5,  group:"A", slot:"A2", alt:"Calf press on leg press"},
+      {id:"lpcalf",    name:"Leg Press Calf Raise",  sets:4, lo:10, hi:15, rir:0, rest:"45 s",  inc:10, group:"A", slot:"A2", alt:"Standing calf raise"},
       {id:"legext",    name:"Leg Extension",         sets:3, lo:12, hi:15, rir:0, rest:"45 s",  inc:5,  group:"B", slot:"B1", alt:"Sissy squat"},
-      {id:"lyingcurl", name:"Lying Leg Curl",        sets:3, lo:10, hi:12, rir:1, rest:"45 s",  inc:5,  group:"B", slot:"B2", alt:"Seated leg curl"}
+      {id:"seatcurlA", name:"Seated Leg Curl",       sets:3, lo:10, hi:12, rir:1, rest:"45 s",  inc:5,  group:"B", slot:"B2", alt:"Lying leg curl"}
     ]
   },
   upperA: {
@@ -479,7 +479,7 @@ const PROGRAM = {
       {id:"ohp",      name:"Standing Overhead Press", sets:4, lo:6,  hi:8,  rir:2, rest:"90 s", inc:5, group:"A", slot:"A2", alt:"Seated DB press"},
       {id:"pulldown", name:"Lat Pulldown (wide)",     sets:3, lo:10, hi:12, rir:1, rest:"45 s", inc:5, group:"B", slot:"B1", alt:"Machine pulldown"},
       {id:"dip",      name:"Weighted Dip",            sets:3, lo:8,  hi:12, rir:1, rest:"45 s", inc:5, group:"B", slot:"B2", alt:"Close-grip bench"},
-      {id:"latraise", name:"Cable Lateral Raise",     sets:4, lo:12, hi:15, rir:0, rest:"40 s", inc:5, group:"C", slot:"C1", alt:"DB lateral raise"},
+      {id:"latraise", name:"Behind-Back Cable Lateral",sets:4, lo:12, hi:15, rir:0, rest:"40 s", inc:5, group:"C", slot:"C1", alt:"DB lateral raise"},
       {id:"sapd",     name:"Straight-Arm Pulldown",   sets:3, lo:12, hi:15, rir:0, rest:"40 s", inc:5, group:"C", slot:"C2", alt:"DB pullover"},
       {id:"pecdeck",  name:"Pec Deck",                sets:3, lo:12, hi:15, rir:0, rest:"60 s", inc:5, group:null}
     ]
@@ -492,7 +492,7 @@ const PROGRAM = {
       {id:"ohtri",      name:"Overhead Cable Triceps Ext", sets:4, lo:10, hi:12, rir:0, rest:"50 s", inc:5, group:"A", slot:"A2", alt:"DB overhead extension"},
       {id:"hammer",     name:"Hammer Curl",                sets:3, lo:10, hi:12, rir:0, rest:"45 s", inc:5, group:"B", slot:"B1", alt:"Cable hammer curl"},
       {id:"pushdown",   name:"Rope Pushdown",              sets:3, lo:12, hi:15, rir:0, rest:"45 s", inc:5, group:"B", slot:"B2", alt:"Bar pushdown"},
-      {id:"cablelat",   name:"Cable Lateral Raise",        sets:4, lo:15, hi:20, rir:0, rest:"40 s", inc:5, group:"C", slot:"C1", alt:"DB lateral raise"},
+      {id:"cablelat",   name:"Behind-Back Cable Lateral",  sets:4, lo:15, hi:20, rir:0, rest:"40 s", inc:5, group:"C", slot:"C1", alt:"DB lateral raise"},
       {id:"reardelt",   name:"Rear Delt Fly",              sets:3, lo:15, hi:20, rir:0, rest:"40 s", inc:5, group:"C", slot:"C2", alt:"Reverse pec deck"},
       {id:"preacher",   name:"EZ-Bar Preacher Curl",       sets:3, lo:10, hi:15, rir:0, rest:"40 s", inc:5, group:"D", slot:"D1", alt:"Machine curl"},
       {id:"skull",      name:"EZ-Bar Skull Crusher",       sets:3, lo:10, hi:12, rir:1, rest:"40 s", inc:5, group:"D", slot:"D2", alt:"Cable overhead extension"}
@@ -516,6 +516,7 @@ function save(db){
 let DB = load();
 migrate(DB);
 startProgram(DB);
+keepRetiredLogs(DB);
 save(DB);
 let currentDay = DAY_ORDER[0];
 
@@ -585,6 +586,33 @@ function startProgram(db){
   db.drops = {};
   db.week = 1;
   db.programId = PROGRAM_ID;
+}
+
+// Nov 4 swaps: lying curl -> seated curl, seated calf -> leg press calf on
+// Lower A. Any weeks already logged on the old exercises keep them, as
+// added exercises limited to those weeks, so nothing logged disappears.
+function keepRetiredLogs(db){
+  if(db.retiredKept) return;
+  // defined inside: this runs at startup, before later top-level consts exist
+  const RETIRED = {
+    lyingcurl: {day:"lowerA", name:"Lying Leg Curl",    sets:3, lo:10, hi:12, rir:1, rest:"45 s", inc:5},
+    seatcalf:  {day:"lowerA", name:"Seated Calf Raise", sets:4, lo:12, hi:15, rir:0, rest:"45 s", inc:5}
+  };
+  for(const id in RETIRED){
+    const weeks = [];
+    for(const w in (db.weekLog || {})){
+      const rows = db.weekLog[w][id];
+      if(rows && rows.some(function(x){ return x.w !== "" || x.r !== ""; })) weeks.push(Number(w));
+    }
+    if(!weeks.length) continue;
+    const r = RETIRED[id];
+    if(!db.custom) db.custom = {};
+    if(!db.custom[r.day]) db.custom[r.day] = [];
+    if(db.custom[r.day].some(function(l){ return l.id === id; })) continue;
+    db.custom[r.day].push({id:id, name:r.name, sets:r.sets, lo:r.lo, hi:r.hi, rir:r.rir, rest:r.rest, inc:r.inc,
+      group:null, from:Math.min.apply(null, weeks), until:Math.max.apply(null, weeks)});
+  }
+  db.retiredKept = true;
 }
 
 // Latest non-deload week of an archived program with real numbers for a lift.
@@ -1545,6 +1573,7 @@ function renderNotes(main){
     '<div class="note">' +
       '<h3>What changed from the cut</h3>' +
       '<p>About <b>20% more sets</b>, aimed at what shows in a shirt: an extra lateral-raise slot on Upper A, a pec-deck finisher on Upper B, a preacher curl + skull crusher superset on Arms, and a leg-curl superset on Lower A. Rep ranges are a little wider so the extra food turns into extra reps.</p>' +
+      '<p><b>Stretch-focused swaps:</b> seated (not lying) leg curl, leg-press calf raise with a <b>2 s pause at the bottom</b>, and lateral raises with the cable <b>behind your back</b> — stand side-on to a low pulley, handle in the far hand, cable running behind you. Muscles grow more when they are loaded hard in the stretched position.</p>' +
       '<p>Your cut logs are archived, not deleted. Week 1 shows your <b>last cut numbers</b> in the Last column so you know where to start.</p>' +
     '</div>' +
 
@@ -1620,6 +1649,7 @@ function renderNotes(main){
       if(!data.week) data.week = 1;
       migrate(data);
       startProgram(data);
+      keepRetiredLogs(data);
       DB = data;
       save(DB);
       editingId = null;
